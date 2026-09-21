@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+body {
+  background: linear-gradient(180deg, #eef1f6 0%, #f7f8fa 400px, #f7f8fa 100%);
+  min-height: 100vh;
+}
+
+@keyframes kirka-select-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
