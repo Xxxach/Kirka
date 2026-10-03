@@ -4,10 +4,13 @@ import Collapse from '../components/Collapse';
 import { AdSlot } from '../components/AdSlot';
 import { FileDropzone } from '../components/FileDropzone';
 
+// locked: true — режим закрыт на время бета-теста (тяжёлые операции).
+// Чтобы открыть, достаточно убрать locked и суффикс «— скоро» в label
+// (и включить HEAVY_MODES_ENABLED=true на photo-server).
 const photoModeOptions = [
   { value: 'compress', label: 'Сжатие' },
-  { value: 'bg-remove', label: 'Удаление фона' },
-  { value: 'upscale', label: 'Увеличение качества' },
+  { value: 'bg-remove', label: 'Удаление фона — скоро', locked: true },
+  { value: 'upscale', label: 'Увеличение качества — скоро', locked: true },
 ];
 
 const compressLevelOptions = [
@@ -140,12 +143,18 @@ export function PhotoPage() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 px-4 sm:px-5 py-1 gap-6 md:gap-10">
       <div className="flex flex-col justify-between gap-3">
-        <Select
-          options={photoModeOptions}
-          value={photoForm.mode}
-          onChange={handleModeChange}
-          placeholder="Выбери режим"
-        />
+        <div className="flex flex-col gap-1">
+          <Select
+            options={photoModeOptions}
+            value={photoForm.mode}
+            onChange={handleModeChange}
+            isOptionDisabled={(option) => option.locked}
+            placeholder="Выбери режим"
+          />
+          <p className="text-xs text-slate-400 px-1">
+            Новые возможности будут открываться в ходе бета-теста.
+          </p>
+        </div>
         <Collapse show={photoForm.mode.value === 'compress'}>
           <Select
             options={compressLevelOptions}

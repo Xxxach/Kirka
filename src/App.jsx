@@ -17,6 +17,9 @@ const PhotoPage = lazy(loadPhotoPage);
 const KodPage = lazy(loadKodPage);
 const FilePage = lazy(loadFilePage);
 
+// Подпапка, в которой лежит сайт (на GitHub Pages — /Kirka). Для корня будет '/'.
+const ROUTER_BASENAME = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
+
 function App() {
   const adBlocked = useAdBlockDetector();
 
@@ -59,7 +62,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={ROUTER_BASENAME}>
       <Header />
       <Suspense fallback={null}>
         <Routes>

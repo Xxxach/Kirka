@@ -5,7 +5,6 @@ import textwrap
 import urllib.request
 from collections import Counter
 
-import cv2
 import numpy as np
 import pdfplumber
 import rinoh_typeface_dejavusans as _dejavu_pkg
@@ -13,8 +12,8 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 from PIL import Image, ImageFilter
-from rembg import remove
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
@@ -25,6 +24,17 @@ FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:5173")
 
 app = Flask(__name__)
 CORS(app, origins=[FRONTEND_ORIGIN])
+
+# За прокси (Yandex Cloud и т.п.) настоящий IP клиента лежит в X-Forwarded-For.
+# Без этого все пользователи выглядят как один IP и делят один лимит.
+if os.environ.get("TRUST_PROXY", "false").lower() == "true":
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
+
+# Тяжёлые режимы (rembg, AI-апскейл) закрыты на время бета-теста.
+# Чтобы открыть: HEAVY_MODES_ENABLED=true и образ с requirements.txt
+# (а не requirements-lite.txt), т.к. нужны rembg и opencv.
+HEAVY_MODES = {"bg-remove", "upscale"}
+HEAVY_MODES_ENABLED = os.environ.get("HEAVY_MODES_ENABLED", "false").lower() == "true"
 app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024  # 15 МБ на файл
 
 QUALITY_MAP = {"low": 85, "medium": 60, "high": 35}
@@ -181,7 +191,7 @@ MODEL_URLS = {
     4: "https://raw.githubusercontent.com/Saafke/FSRCNN_Tensorflow/master/models/FSRCNN_x4.pb",
 }
 
-_sr_instance = cv2.dnn_superres.DnnSuperResImpl_create()
+_sr_instance = None
 _loaded_scale = None
 
 
@@ -195,7 +205,11 @@ def ensure_model_downloaded(scale):
 
 
 def get_sr_model(scale):
-    global _loaded_scale
+    global _loaded_scale, _sr_instance
+    import cv2  # тяжёлая зависимость — грузим только когда режим реально нужен
+
+    if _sr_instance is None:
+        _sr_instance = cv2.dnn_superres.DnnSuperResImpl_create()
     if _loaded_scale != scale:
         path = ensure_model_downloaded(scale)
         _sr_instance.readModel(path)
@@ -230,11 +244,17 @@ def process():
     if not file:
         return jsonify({"error": "Файл не найден"}), 400
 
+    mode = request.form.get("mode")  # 'compress' | 'bg-remove' | 'upscale' | 'convert' | 'convert-doc'
+    if mode in HEAVY_MODES and not HEAVY_MODES_ENABLED:
+        return jsonify({
+            "error": "beta_locked",
+            "message": "Этот режим откроется в ходе бета-теста. Следи за обновлениями!",
+        }), 403
+
     limit_response = check_limit()
     if limit_response:
         return limit_response
 
-    mode = request.form.get("mode")  # 'compress' | 'bg-remove' | 'upscale' | 'convert' | 'convert-doc'
     compression = request.form.get("compression", "medium")
     scale = int(request.form.get("scale", 2))
     target_format = request.form.get("target_format", "png").lower()
@@ -298,6 +318,8 @@ def process():
         return send_file(buffer, mimetype=mimetype)
 
     if mode == "bg-remove":
+        from rembg import remove
+
         result_bytes = remove(input_bytes)
         return send_file(io.BytesIO(result_bytes), mimetype="image/png")
 
@@ -310,6 +332,8 @@ def process():
         return send_file(buffer, mimetype="image/jpeg")
 
     if mode == "upscale":
+        import cv2
+
         if scale not in (2, 3, 4):
             scale = 2
 
