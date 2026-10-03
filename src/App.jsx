@@ -22,12 +22,24 @@ const FilePage = lazy(loadFilePage);
 // Подпапка, в которой лежит сайт (на GitHub Pages — /Kirka). Для корня будет '/'.
 const ROUTER_BASENAME = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
 
+// Заголовок вкладки для каждой страницы (в Метрике тоже будут понятные названия).
+const DEFAULT_TITLE = 'Kirka — тексты, код и фото с AI';
+const PAGE_TITLES = {
+  '/': DEFAULT_TITLE,
+  '/photo-page': 'Фото: сжатие и обработка — Kirka',
+  '/kod-page': 'Перевод кода между языками — Kirka',
+  '/file-page': 'Конвертация файлов: PDF, Word, изображения — Kirka',
+  '/privacy': 'Политика конфиденциальности — Kirka',
+};
+
 // SPA: Метрика сама видит только первую загрузку, поэтому каждый переход
 // между страницами отправляем как отдельный просмотр.
 function RouteTracker() {
   const location = useLocation();
   useEffect(() => {
-    trackHit(window.location.href);
+    document.title =
+      PAGE_TITLES[location.pathname] ?? 'Страница не найдена — Kirka';
+    trackHit(window.location.href, document.title);
   }, [location.pathname, location.search]);
   return null;
 }

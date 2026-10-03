@@ -13,7 +13,8 @@ function ym(...args) {
   }
 }
 
-export const trackHit = (url = window.location.href) => ym('hit', url);
+export const trackHit = (url = window.location.href, title = document.title) =>
+  ym('hit', url, { title });
 
 // Цели (создать в Метрике: Настройки -> Цели -> JavaScript-событие, идентификатор = имя ниже):
 // text_generated, code_converted, photo_processed, file_converted, feedback_sent
