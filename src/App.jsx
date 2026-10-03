@@ -1,10 +1,12 @@
 import { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { TextPage } from './pages/TextPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { Header } from './components/Header';
 import { useAdBlockDetector } from './hooks/useAdBlockDetector';
+import { CookieNotice } from './components/CookieNotice';
+import { trackHit } from './analytics';
 
 const loadPhotoPage = () =>
   import('./pages/PhotoPage').then((m) => ({ default: m.PhotoPage }));
@@ -19,6 +21,16 @@ const FilePage = lazy(loadFilePage);
 
 // Подпапка, в которой лежит сайт (на GitHub Pages — /Kirka). Для корня будет '/'.
 const ROUTER_BASENAME = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
+
+// SPA: Метрика сама видит только первую загрузку, поэтому каждый переход
+// между страницами отправляем как отдельный просмотр.
+function RouteTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    trackHit(window.location.href);
+  }, [location.pathname, location.search]);
+  return null;
+}
 
 function App() {
   const adBlocked = useAdBlockDetector();
@@ -63,6 +75,7 @@ function App() {
 
   return (
     <BrowserRouter basename={ROUTER_BASENAME}>
+      <RouteTracker />
       <Header />
       <Suspense fallback={null}>
         <Routes>
@@ -82,6 +95,7 @@ function App() {
           Политика конфиденциальности
         </Link>
       </footer>
+      <CookieNotice />
     </BrowserRouter>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
 
 const langOptions = [
@@ -65,6 +66,7 @@ export function KodPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Не удалось перевести код');
 
+      trackGoal('code_converted');
       setFillState('done');
       await new Promise((r) => setTimeout(r, 300));
       setResult(data.result);

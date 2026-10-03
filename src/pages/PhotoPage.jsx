@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
 import Collapse from '../components/Collapse';
 import { AdSlot } from '../components/AdSlot';
@@ -97,6 +98,7 @@ export function PhotoPage() {
 
       if (resultUrl) URL.revokeObjectURL(resultUrl);
 
+      trackGoal('photo_processed', { mode: photoForm.mode.value });
       setFillState('done');
       await new Promise((r) => setTimeout(r, 300));
       setResultUrl(imageUrl);

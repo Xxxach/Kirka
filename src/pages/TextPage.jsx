@@ -1,4 +1,5 @@
 import { AdSlot } from '../components/AdSlot';
+import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
 import { useState } from 'react';
 
@@ -200,6 +201,7 @@ export function TextPage() {
       if (!res.ok)
         throw new Error(data.message || 'Не удалось выполнить запрос');
 
+      trackGoal('text_generated');
       setFillState('done');
       await new Promise((r) => setTimeout(r, 300));
       setForm((prev) => ({ ...prev, result: data.result }));

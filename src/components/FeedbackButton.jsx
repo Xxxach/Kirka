@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { trackGoal } from '../analytics';
 
 export function FeedbackButton({ className = '' }) {
   const [open, setOpen] = useState(false);
@@ -22,6 +23,7 @@ export function FeedbackButton({ className = '' }) {
         body: JSON.stringify({ message, page: window.location.pathname }),
       });
       if (!res.ok) throw new Error();
+      trackGoal('feedback_sent');
       setStatus('done');
     } catch {
       setStatus('error');

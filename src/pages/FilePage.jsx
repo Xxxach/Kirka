@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
 import Collapse from '../components/Collapse';
 import { AdSlot } from '../components/AdSlot';
@@ -91,6 +92,7 @@ export function FilePage() {
 
       if (resultUrl) URL.revokeObjectURL(resultUrl);
 
+      trackGoal('file_converted', { kind: isImage ? 'image' : 'document' });
       setFillState('done');
       await new Promise((r) => setTimeout(r, 300));
       setResultUrl(fileUrl);
