@@ -84,15 +84,15 @@ jobs:
           public: true
           revision-service-account-id: ${{ vars.YC_SA_ID }}
           revision-cores: 1
-          revision-memory: 512Mb
+          revision-memory: 1024Mb
           revision-core-fraction: 100
-          revision-concurrency: 2
+          revision-concurrency: 1
           revision-execution-timeout: 120
           revision-image-url: cr.yandex/${{ vars.YC_REGISTRY_ID }}/kirka-photo:${{ github.sha }}
           revision-env: |
             FRONTEND_ORIGIN=${{ vars.FRONTEND_ORIGIN }}
             TRUST_PROXY=true
-            HEAVY_MODES_ENABLED=false
+            ENABLED_HEAVY_MODES=upscale
 
       - name: Show URL
         run: |

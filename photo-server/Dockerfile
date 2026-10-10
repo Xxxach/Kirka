@@ -8,7 +8,8 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 COPY requirements-lite.txt .
-RUN pip install -r requirements-lite.txt
+RUN pip install -r requirements-lite.txt \
+ && python -c "import cv2; cv2.dnn_superres.DnnSuperResImpl_create(); print('opencv ok', cv2.__version__)"
 
 COPY . .
 

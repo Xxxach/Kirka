@@ -1,5 +1,11 @@
 import { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  useLocation,
+} from 'react-router-dom';
 import { TextPage } from './pages/TextPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -23,7 +29,8 @@ const FilePage = lazy(loadFilePage);
 const ROUTER_BASENAME = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
 
 // Заголовок вкладки для каждой страницы (в Метрике тоже будут понятные названия).
-const DEFAULT_TITLE = 'Kirka — тексты, код и фото с AI';
+const DEFAULT_TITLE =
+  'Kirka (Кирка) — ИИ-тексты, перевод кода, сжатие фото и файлов';
 const PAGE_TITLES = {
   '/': DEFAULT_TITLE,
   '/photo-page': 'Фото: сжатие и обработка — Kirka',
@@ -71,8 +78,8 @@ function App() {
             Обнаружен блокировщик рекламы
           </h2>
           <p className="text-sm text-slate-500 mb-5">
-            Сайт бесплатный только благодаря рекламе. Отключи AdBlock для
-            этого сайта и обнови страницу.
+            Сайт бесплатный только благодаря рекламе. Отключи AdBlock для этого
+            сайта и обнови страницу.
           </p>
           <button
             className="bg-[#7A2432] hover:bg-[#5c1c28] rounded-full text-white px-8 py-2.5 transition-colors"

@@ -34,7 +34,9 @@ if os.environ.get("TRUST_PROXY", "false").lower() == "true":
 # Чтобы открыть: HEAVY_MODES_ENABLED=true и образ с requirements.txt
 # (а не requirements-lite.txt), т.к. нужны rembg и opencv.
 HEAVY_MODES = {"bg-remove", "upscale"}
-HEAVY_MODES_ENABLED = os.environ.get("HEAVY_MODES_ENABLED", "false").lower() == "true"
+ENABLED_HEAVY_MODES = {
+    m.strip() for m in os.environ.get("ENABLED_HEAVY_MODES", "").split(",") if m.strip()
+}
 app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024  # 15 МБ на файл
 
 QUALITY_MAP = {"low": 85, "medium": 60, "high": 35}
@@ -48,7 +50,7 @@ CONVERT_FORMATS = {
 
 DAILY_LIMIT = 70  # бесплатных обработок фото на IP в сутки
 DAY_SECONDS = 24 * 60 * 60
-MAX_INPUT_SIDE = 2000  # защита слабого сервера от гигантских исходников
+MAX_INPUT_SIDE = int(os.environ.get("MAX_INPUT_SIDE", "640"))
 
 usage = {}
 
@@ -245,7 +247,7 @@ def process():
         return jsonify({"error": "Файл не найден"}), 400
 
     mode = request.form.get("mode")  # 'compress' | 'bg-remove' | 'upscale' | 'convert' | 'convert-doc'
-    if mode in HEAVY_MODES and not HEAVY_MODES_ENABLED:
+    if mode in HEAVY_MODES and mode not in ENABLED_HEAVY_MODES:
         return jsonify({
             "error": "beta_locked",
             "message": "Этот режим откроется в ходе бета-теста. Следи за обновлениями!",
@@ -334,7 +336,7 @@ def process():
     if mode == "upscale":
         import cv2
 
-        if scale not in (2, 3, 4):
+        if scale not in (2, 4):
             scale = 2
 
         np_arr = np.frombuffer(input_bytes, np.uint8)

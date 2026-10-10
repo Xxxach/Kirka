@@ -11,7 +11,7 @@ import { FileDropzone } from '../components/FileDropzone';
 const photoModeOptions = [
   { value: 'compress', label: 'Сжатие' },
   { value: 'bg-remove', label: 'Удаление фона — скоро', locked: true },
-  { value: 'upscale', label: 'Увеличение качества — скоро', locked: true },
+  { value: 'upscale', label: 'Увеличение качества' },
 ];
 
 const compressLevelOptions = [
@@ -22,7 +22,6 @@ const compressLevelOptions = [
 
 const scaleOptions = [
   { value: '2', label: 'x2' },
-  { value: '3', label: 'x3' },
   { value: '4', label: 'x4' },
 ];
 

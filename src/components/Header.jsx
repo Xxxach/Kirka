@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { FeedbackButton } from './FeedbackButton';
-import { Logo, BetkaMetka } from './Logo';
+import { Logo, BetkaMetka, LogoInfo } from './Logo';
 
 const tabs = [
   { to: '/', label: 'Текст-моменты', end: true },
@@ -109,12 +109,12 @@ export function Header() {
 
   return (
     <div className="sticky top-0 z-50 flex flex-col gap-1 p-3">
-      {/* Десктопная версия — оставлена без изменения. */}
+      {/* Десктопная версия */}
       <div className="hidden md:flex items-center justify-between gap-15 px-5 py-4 bg-white/50 backdrop-blur-xl rounded-3xl border border-white/60 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.25)]">
-        <div className="flex items-start gap-2">
+        <LogoInfo>
           <Logo className="h-9 w-auto" />
           <BetkaMetka />
-        </div>
+        </LogoInfo>
         <AdSlot height="h-15" />
         <div className="flex flex-col w-80 items-center text-center">
           <p className="text-l">Абсолютно бесплатный сайт</p>
@@ -135,13 +135,13 @@ export function Header() {
         <FeedbackButton />
       </div>
 
-      {/* Мобильная версия: информация сверху, реклама снизу, навигация кнопкой. */}
+      {/* Моб версия */}
       <div className="md:hidden flex flex-col gap-2 px-3 py-3 bg-white/50 backdrop-blur-xl rounded-3xl border border-white/60 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.22)]">
         <div className="flex items-center justify-between gap-3 px-1">
-          <div className="flex items-start gap-2">
+          <LogoInfo>
             <Logo className="h-8 w-auto" />
             <BetkaMetka />
-          </div>
+          </LogoInfo>
           <div className="flex min-w-0 flex-col items-end text-right">
             <p className="text-sm leading-tight">Абсолютно бесплатный сайт</p>
             <p className="text-[11px] leading-tight text-slate-500">
