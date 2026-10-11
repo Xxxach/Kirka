@@ -20,6 +20,26 @@ const compressLevelOptions = [
   { value: 'high', label: 'Сильное' },
 ];
 
+// Должно совпадать с MAX_INPUT_SIDE и MAX_OUTPUT_PIXELS на photo-server.
+const MAX_UPSCALE_SIDE = 4000;
+const MAX_UPSCALE_OUTPUT_PIXELS = 64_000_000;
+
+function readImageSize(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      resolve(null); // браузер не смог открыть (например, HEIC) — пусть решает сервер
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  });
+}
+
 const scaleOptions = [
   { value: '2', label: 'x2' },
   { value: '4', label: 'x4' },
@@ -70,6 +90,24 @@ export function PhotoPage() {
       setError('Сначала выбери файл');
       return;
     }
+    if (photoForm.mode.value === 'upscale') {
+      const size = await readImageSize(file);
+      if (size) {
+        const k = Number(photoForm.scale.value);
+        if (Math.max(size.w, size.h) > MAX_UPSCALE_SIDE) {
+          setError(
+            `Фото слишком большое для увеличения: до ${MAX_UPSCALE_SIDE} px по большей стороне. У тебя ${size.w}×${size.h}.`,
+          );
+          return;
+        }
+        if (size.w * size.h * k * k > MAX_UPSCALE_OUTPUT_PIXELS) {
+          setError(
+            `Результат получится слишком большим (${size.w * k}×${size.h * k}). ${k > 2 ? 'Выбери x2 или уменьши фото.' : 'Уменьши фото.'}`,
+          );
+          return;
+        }
+      }
+    }
     setLoading(true);
     setError('');
     setFillState('loading');
@@ -89,7 +127,7 @@ export function PhotoPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || 'Не удалось обработать фото');
+        throw new Error(data.message || data.error || 'Не удалось обработать фото');
       }
 
       const blob = await res.blob();

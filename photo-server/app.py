@@ -34,6 +34,8 @@ if os.environ.get("TRUST_PROXY", "false").lower() == "true":
 # Чтобы открыть: HEAVY_MODES_ENABLED=true и образ с requirements.txt
 # (а не requirements-lite.txt), т.к. нужны rembg и opencv.
 HEAVY_MODES = {"bg-remove", "upscale"}
+# Какие тяжёлые режимы открыты, через запятую: ENABLED_HEAVY_MODES=upscale
+# (bg-remove требует rembg и ~1 ГБ+ памяти — пока только на отдельном сервере).
 ENABLED_HEAVY_MODES = {
     m.strip() for m in os.environ.get("ENABLED_HEAVY_MODES", "").split(",") if m.strip()
 }
@@ -50,7 +52,12 @@ CONVERT_FORMATS = {
 
 DAILY_LIMIT = 70  # бесплатных обработок фото на IP в сутки
 DAY_SECONDS = 24 * 60 * 60
-MAX_INPUT_SIDE = int(os.environ.get("MAX_INPUT_SIDE", "640"))
+# Апскейл идёт плитками (см. upscale_tiled), поэтому память почти не зависит от размера
+# фото, а ограничивают только время (~1,5 с на мегапиксель на одном ядре) и размер результата.
+MAX_INPUT_SIDE = int(os.environ.get("MAX_INPUT_SIDE", "4000"))
+MAX_OUTPUT_PIXELS = int(os.environ.get("MAX_OUTPUT_PIXELS", "64000000"))  # ~8000x8000
+TILE = 320      # сторона плитки исходника, px
+TILE_PAD = 16   # запас вокруг плитки, чтобы не было швов на стыках
 
 usage = {}
 
@@ -206,6 +213,24 @@ def ensure_model_downloaded(scale):
     return path
 
 
+def upscale_tiled(sr, img, scale):
+    """Увеличивает фото по плиткам: пиковая память ~постоянна для любого размера."""
+    h, w = img.shape[:2]
+    out = np.empty((h * scale, w * scale, 3), dtype=np.uint8)
+    for y0 in range(0, h, TILE):
+        y1 = min(y0 + TILE, h)
+        py0, py1 = max(0, y0 - TILE_PAD), min(h, y1 + TILE_PAD)
+        for x0 in range(0, w, TILE):
+            x1 = min(x0 + TILE, w)
+            px0, px1 = max(0, x0 - TILE_PAD), min(w, x1 + TILE_PAD)
+            tile = sr.upsample(np.ascontiguousarray(img[py0:py1, px0:px1]))
+            oy, ox = (y0 - py0) * scale, (x0 - px0) * scale
+            out[y0 * scale:y1 * scale, x0 * scale:x1 * scale] = tile[
+                oy:oy + (y1 - y0) * scale, ox:ox + (x1 - x0) * scale
+            ]
+    return out
+
+
 def get_sr_model(scale):
     global _loaded_scale, _sr_instance
     import cv2  # тяжёлая зависимость — грузим только когда режим реально нужен
@@ -336,7 +361,7 @@ def process():
     if mode == "upscale":
         import cv2
 
-        if scale not in (2, 4):
+        if scale not in (2, 4):  # в образе есть только модели x2 и x4
             scale = 2
 
         np_arr = np.frombuffer(input_bytes, np.uint8)
@@ -349,11 +374,17 @@ def process():
         if max(h, w) > MAX_INPUT_SIDE:
             return jsonify({
                 "error": "image_too_large",
-                "message": "Фото слишком большое для увеличения. Максимальная сторона — 2000px.",
+                "message": f"Фото слишком большое для увеличения. Максимальная сторона — {MAX_INPUT_SIDE}px.",
+            }), 400
+
+        if h * w * scale * scale > MAX_OUTPUT_PIXELS:
+            return jsonify({
+                "error": "result_too_large",
+                "message": f"Результат получится слишком большим ({w * scale}x{h * scale}). Выбери меньший множитель или уменьши фото.",
             }), 400
 
         sr = get_sr_model(scale)
-        upscaled = sr.upsample(cv_image)
+        upscaled = upscale_tiled(sr, cv_image, scale)
 
         success, buffer = cv2.imencode(".jpg", upscaled, [cv2.IMWRITE_JPEG_QUALITY, 92])
         if not success:

@@ -1,6 +1,21 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import hljs from 'highlight.js/lib/core';
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import python from 'highlight.js/lib/languages/python';
+import java from 'highlight.js/lib/languages/java';
+import csharp from 'highlight.js/lib/languages/csharp';
 import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
+
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('java', java);
+hljs.registerLanguage('csharp', csharp);
+
+// значение из списка языков -> имя языка в highlight.js
+const HLJS_LANG = { js: 'javascript', ts: 'typescript', py: 'python', j: 'java', cs: 'csharp' };
 
 const langOptions = [
   { value: 'auto', label: 'Auto' },
@@ -10,6 +25,23 @@ const langOptions = [
   { value: 'j', label: 'Java' },
   { value: 'cs', label: 'C#' },
 ];
+
+// Целевой язык не может быть «Auto»: непонятно, на что переводить.
+const targetOptions = langOptions.filter((o) => o.value !== 'auto');
+
+const FILE_EXT = { js: 'js', ts: 'ts', py: 'py', j: 'java', cs: 'cs' };
+
+// Для Java имя файла должно совпадать с именем public-класса, иначе не скомпилируется.
+function resultFileName(code, langValue) {
+  if (langValue === 'j') {
+    const m = code.match(/public\s+(?:final\s+|abstract\s+)*class\s+(\w+)/);
+    return `${m ? m[1] : 'Main'}.java`;
+  }
+  return `kirka-code.${FILE_EXT[langValue] ?? 'txt'}`;
+}
+
+const smallBtn =
+  'rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 shadow-sm transition-colors hover:bg-slate-50';
 
 const tierOptions = [
   { value: 'basic', label: 'Упрощённая' },
@@ -39,12 +71,33 @@ export function KodPage() {
   const [error, setError] = useState('');
   const [code, setCode] = useState('');
   const [result, setResult] = useState('');
+  const [resultLang, setResultLang] = useState('j'); // язык, на который переводили
+  const [copied, setCopied] = useState(false);
+
+  // Подсветка синтаксиса. highlight.js сам экранирует HTML, так что это безопасно.
+  const highlighted = useMemo(() => {
+    if (!result) return '';
+    try {
+      const lang = HLJS_LANG[resultLang];
+      return (
+        lang
+          ? hljs.highlight(result, { language: lang, ignoreIllegals: true })
+          : hljs.highlightAuto(result)
+      ).value;
+    } catch {
+      return null; // покажем обычным текстом
+    }
+  }, [result, resultLang]);
 
   const [fillState, setFillState] = useState('idle');
 
   const handleGenerate = async () => {
     if (!code.trim()) {
       setError('Сначала вставь код для перевода');
+      return;
+    }
+    if (kodForm.lang.value !== 'auto' && kodForm.lang.value === kodForm.relang.value) {
+      setError('Исходный и целевой язык совпадают. Выбери другой язык.');
       return;
     }
 
@@ -58,6 +111,7 @@ export function KodPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code,
+          sourceLang: kodForm.lang.label,
           targetLang: kodForm.relang.label,
           tier: kodForm.tier.value,
         }),
@@ -69,6 +123,7 @@ export function KodPage() {
       trackGoal('code_converted');
       setFillState('done');
       await new Promise((r) => setTimeout(r, 300));
+      setResultLang(kodForm.relang.value);
       setResult(data.result);
     } catch (err) {
       setError(err.message);
@@ -77,6 +132,26 @@ export function KodPage() {
       setLoading(false);
       setFillState('idle');
     }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(result);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // буфер обмена недоступен — ничего страшного
+    }
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = resultFileName(result, resultLang);
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleLangChange = (selectedOption) => {
@@ -99,6 +174,7 @@ export function KodPage() {
           options={langOptions}
           value={kodForm.lang}
           onChange={handleLangChange}
+          isOptionDisabled={(o) => o.value !== 'auto' && o.value === kodForm.relang.value}
           placeholder="Выбери язык"
         />
         <textarea
@@ -166,19 +242,44 @@ export function KodPage() {
         </div>
       </div>
       <div className="flex md:items-end flex-col col-span-2 gap-3">
-        <Select
-          className="w-50"
-          options={langOptions}
-          value={kodForm.relang}
-          onChange={handleRelangChange}
-          placeholder="Выбери язык"
-        />
-        <textarea
-          className="p-4 border border-slate-200 outline-none focus:border-[#7A2432]/50 focus:ring-1 focus:ring-[#7A2432]/30 bg-white h-50 md:h-80 rounded-2xl shadow-sm w-full resize-none placeholder:text-slate-400"
-          value={result}
-          readOnly
-          placeholder="Здесь получишь свой же код на другом языке быстро.."
-        />
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          <Select
+            className="w-50"
+            options={targetOptions}
+            value={kodForm.relang}
+            onChange={handleRelangChange}
+            isOptionDisabled={(o) => kodForm.lang.value !== 'auto' && o.value === kodForm.lang.value}
+            placeholder="Выбери язык"
+          />
+          {result && (
+            <div className="flex shrink-0 gap-2">
+              <button type="button" onClick={handleCopy} className={smallBtn}>
+                {copied ? 'Скопировано' : 'Копировать'}
+              </button>
+              <button type="button" onClick={handleDownload} className={smallBtn}>
+                Скачать
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="h-50 md:h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          {result ? (
+            <pre className="font-mono text-[13px] leading-relaxed">
+              {highlighted === null ? (
+                <code>{result}</code>
+              ) : (
+                <code
+                  className="hljs"
+                  dangerouslySetInnerHTML={{ __html: highlighted }}
+                />
+              )}
+            </pre>
+          ) : (
+            <p className="text-slate-400">
+              Здесь получишь свой же код на другом языке быстро..
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

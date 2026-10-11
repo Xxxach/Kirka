@@ -84,7 +84,7 @@ export function FilePage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || 'Не удалось сконвертировать файл');
+        throw new Error(data.message || data.error || 'Не удалось сконвертировать файл');
       }
 
       const blob = await res.blob();

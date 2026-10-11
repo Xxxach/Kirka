@@ -34,7 +34,7 @@ async function askCloudflare(prompt) {
   const r = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CF_API_TOKEN}` },
-    body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], max_tokens: 2048 }),
   });
   if (!r.ok) throw new Error(await r.text());
   const data = await r.json();
@@ -53,7 +53,7 @@ async function askDeepSeek(prompt) {
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1500,
+      max_tokens: 4000,
     }),
   });
   if (!r.ok) throw new Error(await r.text());
@@ -270,17 +270,60 @@ const promptBuilders = {
   slogan: buildSloganPrompt,
 };
 
+// Языки, между которыми можно переводить. Проверка нужна и от Auto в качестве цели,
+// и от подмены названия языка (оно попадает в промпт).
+const CODE_LANGS = ['JavaScript', 'TypeScript', 'Python', 'Java', 'C#'];
+
+function validateCodeRequest(req, res, next) {
+  const { targetLang, sourceLang } = req.body;
+  if (!CODE_LANGS.includes(targetLang)) {
+    return res.status(400).json({
+      error: 'bad_target',
+      message: 'Выбери язык, на который нужно перевести код (вариант Auto для этого не подходит).',
+    });
+  }
+  if (sourceLang === targetLang) {
+    return res.status(400).json({
+      error: 'same_language',
+      message: 'Исходный и целевой язык совпадают. Выбери другой язык.',
+    });
+  }
+  if (!CODE_LANGS.includes(sourceLang)) req.body.sourceLang = undefined; // Auto — модель определит сама
+  next();
+}
+
+// Модель иногда оборачивает код в markdown-блок, хотя её просили не делать этого.
+function stripCodeFence(text) {
+  const m = text.match(/^\s*```[\w+#.-]*\r?\n([\s\S]*?)\r?\n?```\s*$/);
+  return m ? m[1] : text;
+}
+
 const routeHandlers = {
   text: (body) => (promptBuilders[body.mode] || buildResumeOrLetterPrompt)(body),
-  code: ({ code, targetLang }) =>
-    `Переведи код на ${targetLang}, сохрани логику без изменений. Выведи ТОЛЬКО код, без \`\`\` и пояснений.\n\n${code}`,
+  code: ({ code, targetLang, sourceLang }) => `Ты опытный инженер, который переносит код на другой язык. Переведи код ниже на ${targetLang}.${sourceLang ? ` Исходный язык: ${sourceLang}.` : ''}
+
+Требования:
+1. Результат должен запускаться без правок: полный файл, все импорты (import, require, using) на месте, без пропусков вроде "остальной код без изменений".
+2. Используй ровно одну среду выполнения и не смешивай разные.
+   - JavaScript: по умолчанию Node.js, стиль CommonJS (require, module.exports). Ввод с клавиатуры через модуль readline, вывод через console.log. Не используй document, window, alert, prompt и другие браузерные API, если исходный код явно не работает с браузером. Не смешивай require и import.
+   - TypeScript: те же правила, что для Node.js, плюс типы.
+   - Java: класс с public static void main и всеми нужными import.
+   - C#: полный файл с using и методом Main.
+   - Python: Python 3 с нужными import.
+3. Сохрани логику и поведение без изменений. Для функций стандартной библиотеки подбирай точные аналоги целевого языка. Если нужна внешняя библиотека, выбери самую популярную.
+4. Первой строкой (или первыми 1-3 строками) напиши комментарий в синтаксисе целевого языка: что нужно установить (например, npm install axios или pip install requests) и как запустить файл. Если ничего ставить не нужно, напиши: Зависимости не требуются.
+5. Выведи ТОЛЬКО код вместе с этим комментарием: без markdown-обёрток и без пояснений вне кода.
+
+Исходный код:
+${code}`,
 };
 
 for (const [route, build] of Object.entries(routeHandlers)) {
-  app.post(`/api/${route === 'text' ? 'generate-text' : 'convert-code'}`, checkLimit, async (req, res) => {
+  app.post(`/api/${route === 'text' ? 'generate-text' : 'convert-code'}`, ...(route === 'code' ? [validateCodeRequest] : []), checkLimit, async (req, res) => {
     try {
       const call = TIERS[req.tier].call;
-      const result = await call(build(req.body));
+      const raw = await call(build(req.body));
+      const result = route === 'code' ? stripCodeFence(raw) : raw;
       res.json({ result, remaining: req.remaining, tier: req.tier });
     } catch (e) {
       console.error(e.message);

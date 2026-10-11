@@ -43,7 +43,7 @@ jobs:
           revision-memory: 256Mb
           revision-core-fraction: 100
           revision-concurrency: 8
-          revision-execution-timeout: 60
+          revision-execution-timeout: 120
           revision-image-url: cr.yandex/${{ vars.YC_REGISTRY_ID }}/kirka-text:${{ github.sha }}
           revision-env: |
             CF_ACCOUNT_ID=${{ secrets.CF_ACCOUNT_ID }}

@@ -15,3 +15,16 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Подсветка кода (highlight.js) в цветах сайта */
+.hljs { color: #1e293b; }
+.hljs-keyword, .hljs-doctag, .hljs-selector-tag { color: #7a2432; font-weight: 600; }
+.hljs-string, .hljs-template-string, .hljs-regexp { color: #0f766e; }
+.hljs-number, .hljs-literal, .hljs-symbol { color: #b45309; }
+.hljs-comment, .hljs-quote { color: #94a3b8; font-style: italic; }
+.hljs-title, .hljs-title.function_, .hljs-title.class_ { color: #1d4ed8; }
+.hljs-built_in, .hljs-type, .hljs-class .hljs-title { color: #7c3aed; }
+.hljs-attr, .hljs-attribute, .hljs-variable, .hljs-property, .hljs-params { color: #0369a1; }
+.hljs-meta, .hljs-meta .hljs-keyword { color: #64748b; }
+.hljs-operator, .hljs-punctuation { color: #475569; }
+
