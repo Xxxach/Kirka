@@ -248,7 +248,48 @@ def get_sr_model(scale):
     return _sr_instance
 
 
-def check_limit():
+def _unsharp(cv2, img, amount, sigma):
+    return cv2.addWeighted(img, 1 + amount, cv2.GaussianBlur(img, (0, 0), sigma), -amount, 0)
+
+
+def enhance_image(img, level):
+    """Улучшение качества без изменения размера.
+    Ур. 1: шумодав по яркости, сглаживание цветового шума, мягкая резкость.
+    Ур. 2: то же + локальный контраст (CLAHE), цвет и «чёткость».
+    """
+    import cv2
+
+    ycc = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+    y, cr, cb = cv2.split(ycc)
+    del ycc
+    y = cv2.fastNlMeansDenoising(y, None, 6, 5, 15)
+    cr = cv2.GaussianBlur(cr, (0, 0), 2)
+    cb = cv2.GaussianBlur(cb, (0, 0), 2)
+    out = cv2.cvtColor(cv2.merge([y, cr, cb]), cv2.COLOR_YCrCb2BGR)
+    del y, cr, cb
+
+    if level == 1:
+        return _unsharp(cv2, out, 0.6, 1.0)
+
+    lab = cv2.cvtColor(out, cv2.COLOR_BGR2LAB)
+    l_ch, a_ch, b_ch = cv2.split(lab)
+    del lab
+    l_ch = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8)).apply(l_ch)
+    out = cv2.cvtColor(cv2.merge([l_ch, a_ch, b_ch]), cv2.COLOR_LAB2BGR)
+    del l_ch, a_ch, b_ch
+
+    hsv = cv2.cvtColor(out, cv2.COLOR_BGR2HSV)
+    h_ch, s_ch, v_ch = cv2.split(hsv)
+    del hsv
+    s_ch = cv2.convertScaleAbs(s_ch, alpha=1.08)  # +8% насыщенности, с насыщением у 255
+    out = cv2.cvtColor(cv2.merge([h_ch, s_ch, v_ch]), cv2.COLOR_HSV2BGR)
+    del h_ch, s_ch, v_ch
+
+    out = _unsharp(cv2, out, 0.5, 1.0)  # мелкие детали
+    return _unsharp(cv2, out, 0.2, 5.0)  # «чёткость» (локальный контраст)
+
+
+def check_limit(cost=1):
     ip = request.remote_addr
     now = time.time()
     entry = usage.get(ip)
@@ -256,14 +297,14 @@ def check_limit():
     if not entry or now > entry["reset_at"]:
         entry = {"count": 0, "reset_at": now + DAY_SECONDS}
 
-    if entry["count"] >= DAILY_LIMIT:
+    if entry["count"] + cost > DAILY_LIMIT:
         minutes_left = int((entry["reset_at"] - now) / 60) + 1
         return jsonify({
             "error": "limit_reached",
             "message": f"Лимит бесплатных обработок исчерпан ({DAILY_LIMIT}/день). Попробуй через {minutes_left} мин.",
         }), 429
 
-    entry["count"] += 1
+    entry["count"] += cost
     usage[ip] = entry
     return None
 
@@ -281,7 +322,21 @@ def process():
             "message": "Этот режим откроется в ходе бета-теста. Следи за обновлениями!",
         }), 403
 
-    limit_response = check_limit()
+    # Улучшение качества: уровень 1-2 открыт, 3-4 (тариф «Улучшенная») — позже.
+    # Чем выше уровень, тем больше списывается из дневного лимита.
+    level = 1
+    if mode == "upscale":
+        try:
+            level = int(request.form.get("level", "1"))
+        except ValueError:
+            level = 1
+        if request.form.get("tier", "basic") != "basic" or level not in (1, 2):
+            return jsonify({
+                "error": "tier_locked",
+                "message": "Этот уровень откроется в ходе бета-теста.",
+            }), 400
+
+    limit_response = check_limit(level if mode == "upscale" else 1)
     if limit_response:
         return limit_response
 
@@ -364,15 +419,6 @@ def process():
     if mode == "upscale":
         import cv2
 
-        if request.form.get("tier", "basic") != "basic":
-            return jsonify({
-                "error": "tier_locked",
-                "message": "Улучшенная модель откроется в ходе бета-теста.",
-            }), 400
-
-        if scale not in (2, 4):  # в образе есть только модели x2 и x4
-            scale = 2
-
         np_arr = np.frombuffer(input_bytes, np.uint8)
         cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
@@ -383,17 +429,10 @@ def process():
         if max(h, w) > MAX_INPUT_SIDE:
             return jsonify({
                 "error": "image_too_large",
-                "message": f"Фото слишком большое для увеличения. Максимальная сторона — {MAX_INPUT_SIDE}px.",
+                "message": f"Фото слишком большое для улучшения. Максимальная сторона — {MAX_INPUT_SIDE}px.",
             }), 400
 
-        if h * w * scale * scale > MAX_OUTPUT_PIXELS:
-            return jsonify({
-                "error": "result_too_large",
-                "message": f"Результат получится слишком большим ({w * scale}x{h * scale}). Выбери меньший множитель или уменьши фото.",
-            }), 400
-
-        sr = get_sr_model(scale)
-        upscaled = upscale_tiled(sr, cv_image, scale)
+        upscaled = enhance_image(cv_image, level)
 
         jpeg_params = [cv2.IMWRITE_JPEG_QUALITY, 95]
         if hasattr(cv2, "IMWRITE_JPEG_SAMPLING_FACTOR"):  # без потери цветовой чёткости (4:4:4)

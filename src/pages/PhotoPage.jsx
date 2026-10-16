@@ -12,7 +12,7 @@ import { FileDropzone } from '../components/FileDropzone';
 const photoModeOptions = [
   { value: 'compress', label: 'Сжатие' },
   { value: 'bg-remove', label: 'Удаление фона — скоро', locked: true },
-  { value: 'upscale', label: 'Увеличение качества' },
+  { value: 'upscale', label: 'Улучшение качества' },
 ];
 
 const compressLevelOptions = [
@@ -21,9 +21,8 @@ const compressLevelOptions = [
   { value: 'high', label: 'Сильное' },
 ];
 
-// Должно совпадать с MAX_INPUT_SIDE и MAX_OUTPUT_PIXELS на photo-server.
-const MAX_UPSCALE_SIDE = 4000;
-const MAX_UPSCALE_OUTPUT_PIXELS = 64_000_000;
+// Должно совпадать с MAX_INPUT_SIDE на photo-server.
+const MAX_ENHANCE_SIDE = 4000;
 
 function readImageSize(file) {
   return new Promise((resolve) => {
@@ -47,9 +46,14 @@ const upscaleTierOptions = [
   { value: 'pro', label: 'Улучшенная — скоро', locked: true },
 ];
 
-const scaleOptions = [
-  { value: '2', label: 'x2' },
-  { value: '4', label: 'x4' },
+// Уровни улучшения (размер фото не меняется). Чем выше уровень, тем больше
+// списывается из дневного лимита: 1 ур. = 1 обработка, 2 ур. = 2.
+// 3-4 ур. — тариф «Улучшенная», откроются в ходе бета-теста.
+const levelOptions = [
+  { value: '1', label: '1 ур. — шумы и резкость' },
+  { value: '2', label: '2 ур. — шумы, детали, цвет' },
+  { value: '3', label: '3 ур. — скоро (Улучшенная)', locked: true },
+  { value: '4', label: '4 ур. — скоро (Улучшенная)', locked: true },
 ];
 
 const barStyles = {
@@ -62,7 +66,7 @@ export function PhotoPage() {
   const [photoForm, setPhotoForm] = useState({
     mode: photoModeOptions[0],
     compression: compressLevelOptions[1],
-    scale: scaleOptions[0],
+    level: levelOptions[0],
     tier: upscaleTierOptions[0],
   });
   const [file, setFile] = useState(null);
@@ -76,7 +80,7 @@ export function PhotoPage() {
   const getResultLabel = () => {
     if (photoForm.mode.value === 'bg-remove') return 'без фона';
     if (photoForm.mode.value === 'upscale') {
-      return `увеличено ${photoForm.scale.label}`;
+      return `улучшено ${photoForm.level.value} ур.`;
     }
     const labels = {
       low: 'слабо сжатый',
@@ -100,20 +104,11 @@ export function PhotoPage() {
     }
     if (photoForm.mode.value === 'upscale') {
       const size = await readImageSize(file);
-      if (size) {
-        const k = Number(photoForm.scale.value);
-        if (Math.max(size.w, size.h) > MAX_UPSCALE_SIDE) {
-          setError(
-            `Фото слишком большое для увеличения: до ${MAX_UPSCALE_SIDE} px по большей стороне. У тебя ${size.w}×${size.h}.`,
-          );
-          return;
-        }
-        if (size.w * size.h * k * k > MAX_UPSCALE_OUTPUT_PIXELS) {
-          setError(
-            `Результат получится слишком большим (${size.w * k}×${size.h * k}). ${k > 2 ? 'Выбери x2 или уменьши фото.' : 'Уменьши фото.'}`,
-          );
-          return;
-        }
+      if (size && Math.max(size.w, size.h) > MAX_ENHANCE_SIDE) {
+        setError(
+          `Фото слишком большое для улучшения: до ${MAX_ENHANCE_SIDE} px по большей стороне. У тебя ${size.w}×${size.h}.`,
+        );
+        return;
       }
     }
     setLoading(true);
@@ -124,7 +119,7 @@ export function PhotoPage() {
       formData.append('file', file);
       formData.append('mode', photoForm.mode.value);
       formData.append('compression', photoForm.compression.value);
-      formData.append('scale', photoForm.scale.value);
+      formData.append('level', photoForm.level.value);
       formData.append('tier', photoForm.tier.value);
 
       const photoApiUrl = await getApiBase('photo');
@@ -179,8 +174,8 @@ export function PhotoPage() {
     setPhotoForm((prev) => ({ ...prev, tier: selectedOption }));
   };
 
-  const handleScaleChange = (selectedOption) => {
-    setPhotoForm((prev) => ({ ...prev, scale: selectedOption }));
+  const handleLevelChange = (selectedOption) => {
+    setPhotoForm((prev) => ({ ...prev, level: selectedOption }));
   };
 
   useEffect(() => {
@@ -230,13 +225,20 @@ export function PhotoPage() {
                 Улучшенная модель с лучшей детализацией откроется в ходе бета-теста.
               </p>
             </div>
-            <Select
-              options={scaleOptions}
-              value={photoForm.scale}
-              onChange={handleScaleChange}
-              menuPortalTarget={document.body}
-              styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
-            />
+            <div className="flex flex-col gap-1">
+              <Select
+                options={levelOptions}
+                value={photoForm.level}
+                onChange={handleLevelChange}
+                isOptionDisabled={(option) => option.locked}
+                menuPortalTarget={document.body}
+                styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+              />
+              <p className="text-xs text-slate-400 px-1">
+                Размер фото не меняется. Чем выше уровень, тем больше списывается
+                из дневного лимита (1 ур. — 1, 2 ур. — 2).
+              </p>
+            </div>
           </div>
         </Collapse>
 
