@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { getApiBase, friendlyError } from '../api';
 import EditorImport from 'react-simple-code-editor';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
@@ -113,7 +114,7 @@ export function KodPage() {
     setError('');
     setFillState('loading');
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = await getApiBase('text');
       const res = await fetch(`${apiUrl}/api/convert-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -134,7 +135,7 @@ export function KodPage() {
       setResultLang(kodForm.relang.value);
       setResult(data.result);
     } catch (err) {
-      setError(err.message);
+      setError(friendlyError(err));
       console.error(err);
     } finally {
       setLoading(false);

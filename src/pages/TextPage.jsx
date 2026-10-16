@@ -1,16 +1,119 @@
 import { AdSlot } from '../components/AdSlot';
+import { getApiBase, friendlyError } from '../api';
 import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
 import { useState } from 'react';
 
-const modeOptions = [
-  { value: 'resume', label: 'Резюме' },
-  { value: 'letter', label: 'Сопроводительное письмо' },
-  { value: 'greeting', label: 'Поздравление' },
-  { value: 'ad', label: 'Объявление' },
-  { value: 'post', label: 'Пост для соцсети' },
-  { value: 'slogan', label: 'Слоган / название' },
+const modeGroups = [
+  {
+    label: 'Работа и документы',
+    options: [
+      { value: 'resume', label: 'Резюме' },
+      { value: 'letter', label: 'Сопроводительное письмо' },
+      { value: 'claim', label: 'Заявление / претензия' },
+      { value: 'business', label: 'Деловое письмо' },
+    ],
+  },
+  {
+    label: 'Продажи и бизнес',
+    options: [
+      { value: 'marketplace', label: 'Описание товара для маркетплейса' },
+      { value: 'ad', label: 'Объявление' },
+      { value: 'review', label: 'Ответ на отзыв' },
+      { value: 'slogan', label: 'Слоган / название' },
+    ],
+  },
+  {
+    label: 'Соцсети и общение',
+    options: [
+      { value: 'post', label: 'Пост для соцсети' },
+      { value: 'greeting', label: 'Поздравление' },
+    ],
+  },
+  {
+    label: 'Редактура',
+    options: [{ value: 'improve', label: 'Улучшить текст' }],
+  },
 ];
+const modeOptions = modeGroups.flatMap((g) => g.options);
+
+// Значение этих полей уходит на сервер как value (там по нему подбирается инструкция).
+const marketplaceOptions = [
+  { value: 'wb', label: 'Wildberries' },
+  { value: 'ozon', label: 'Ozon' },
+  { value: 'ymarket', label: 'Яндекс Маркет' },
+  { value: 'avito', label: 'Авито' },
+];
+
+const ratingOptions = [
+  { value: '5', label: '5 — отлично' },
+  { value: '4', label: '4 — хорошо' },
+  { value: '3', label: '3 — средне' },
+  { value: '2', label: '2 — плохо' },
+  { value: '1', label: '1 — ужасно' },
+];
+
+const replyToneOptions = [
+  { value: 'polite', label: 'Вежливый' },
+  { value: 'friendly', label: 'Дружелюбный' },
+  { value: 'empathic', label: 'Сочувствующий' },
+  { value: 'official', label: 'Официальный' },
+];
+
+const docKindOptions = [
+  { value: 'shop_claim', label: 'Претензия в магазин' },
+  { value: 'utility_claim', label: 'Претензия в управляющую компанию' },
+  { value: 'resignation', label: 'Заявление об увольнении' },
+  { value: 'vacation', label: 'Заявление на отпуск' },
+  { value: 'explanation', label: 'Объяснительная записка' },
+  { value: 'free', label: 'Заявление в свободной форме' },
+];
+
+const improveGoalOptions = [
+  { value: 'fix', label: 'Исправить ошибки' },
+  { value: 'short', label: 'Сделать короче' },
+  { value: 'polite', label: 'Сделать вежливее' },
+  { value: 'official', label: 'Сделать официальнее' },
+  { value: 'simple', label: 'Сделать проще и понятнее' },
+  { value: 'persuasive', label: 'Сделать убедительнее' },
+];
+
+const letterKindOptions = [
+  { value: 'offer', label: 'Коммерческое предложение' },
+  { value: 'payment', label: 'Напоминание об оплате' },
+  { value: 'request', label: 'Запрос информации или цен' },
+  { value: 'thanks', label: 'Благодарность партнёру' },
+  { value: 'decline', label: 'Вежливый отказ' },
+  { value: 'invite', label: 'Приглашение на встречу' },
+];
+
+const businessToneOptions = [
+  { value: 'strict', label: 'Строго официальный' },
+  { value: 'friendly', label: 'Деловой, дружелюбный' },
+];
+
+// Обязательные поля новых видов: [поле, сообщение]. Те же проверки есть на сервере.
+const REQUIRED = {
+  marketplace: ['itemName', 'Укажи название товара'],
+  review: ['reviewText', 'Вставь текст отзыва'],
+  claim: ['situation', 'Опиши, что произошло'],
+  improve: ['sourceText', 'Вставь текст, который нужно улучшить'],
+  business: ['details', 'Опиши, о чём письмо'],
+};
+
+const FIELD_LABEL = 'text-xs text-slate-500 font-semibold';
+
+function Field({ label, wide = false, children }) {
+  return (
+    <div
+      className={`flex flex-col gap-1 p-3 ${wide ? 'col-span-1 sm:col-span-2' : ''}`}
+    >
+      <p className={FIELD_LABEL}>{label}</p>
+      {children}
+    </div>
+  );
+}
+
 
 const unitOptions = [
   { value: 'symbols', label: 'Символы' },
@@ -113,6 +216,22 @@ const initialForm = {
   businessType: '',
   sloganStyle: sloganStyleOptions[0],
   variantsCount: '5',
+  marketplace: marketplaceOptions[0],
+  audience: '',
+  reviewText: '',
+  rating: ratingOptions[0],
+  replyTone: replyToneOptions[0],
+  docKind: docKindOptions[0],
+  recipient: '',
+  author: '',
+  situation: '',
+  demand: '',
+  sourceText: '',
+  improveGoal: improveGoalOptions[0],
+  letterKind: letterKindOptions[0],
+  addressee: '',
+  details: '',
+  businessTone: businessToneOptions[0],
   result: '',
 };
 
@@ -160,11 +279,16 @@ export function TextPage() {
   };
 
   const handleGenerate = async () => {
+    const need = REQUIRED[mode];
+    if (need && !String(form[need[0]]).trim()) {
+      setError(need[1]);
+      return;
+    }
     setLoading(true);
     setError('');
     setFillState('loading');
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = await getApiBase('text');
       const res = await fetch(`${apiUrl}/api/generate-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -194,6 +318,22 @@ export function TextPage() {
           businessType: form.businessType,
           sloganStyle: form.sloganStyle?.label,
           variantsCount: form.variantsCount,
+          marketplace: form.marketplace?.label,
+          audience: form.audience,
+          reviewText: form.reviewText,
+          rating: form.rating?.label,
+          replyTone: form.replyTone?.label,
+          docKind: form.docKind?.value,
+          recipient: form.recipient,
+          author: form.author,
+          situation: form.situation,
+          demand: form.demand,
+          sourceText: form.sourceText,
+          improveGoal: form.improveGoal?.value,
+          letterKind: form.letterKind?.value,
+          addressee: form.addressee,
+          details: form.details,
+          businessTone: form.businessTone?.value,
         }),
       });
 
@@ -201,12 +341,12 @@ export function TextPage() {
       if (!res.ok)
         throw new Error(data.message || 'Не удалось выполнить запрос');
 
-      trackGoal('text_generated');
+      trackGoal('text_generated', { mode });
       setFillState('done');
       await new Promise((r) => setTimeout(r, 300));
       setForm((prev) => ({ ...prev, result: data.result }));
     } catch (err) {
-      setError(err.message);
+      setError(friendlyError(err));
       console.error(err);
     } finally {
       setLoading(false);
@@ -217,6 +357,8 @@ export function TextPage() {
   const labelClass = 'text-xs text-slate-500 font-semibold';
   const inputClass =
     'w-full min-w-0 px-3 h-9 border border-slate-300 rounded-lg shadow-sm bg-white';
+  const textareaClass =
+    'w-full min-w-0 p-3 h-28 border border-slate-300 rounded-lg shadow-sm bg-white resize-none';
 
   return (
     <div className="flex flex-col px-5 py-1 gap-6">
@@ -224,7 +366,7 @@ export function TextPage() {
         <div className="flex flex-col gap-1 p-3">
           <p className={labelClass}>Что генерируем</p>
           <Select
-            options={modeOptions}
+            options={modeGroups}
             value={form.mode}
             onChange={handSelectChange('mode')}
           />
@@ -538,6 +680,242 @@ export function TextPage() {
                 placeholder="Например: скорость, надёжность, забота"
               />
             </div>
+          </>
+        )}
+
+        {mode === 'marketplace' && (
+          <>
+            <Field label="Площадка">
+              <Select
+                options={marketplaceOptions}
+                value={form.marketplace}
+                onChange={handSelectChange('marketplace')}
+              />
+            </Field>
+            <Field label="Название товара">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={150}
+                value={form.itemName}
+                onChange={handInputChange('itemName')}
+                placeholder="Например: термокружка 450 мл"
+              />
+            </Field>
+            <Field label="Длина описания">
+              <Select
+                options={lengthOptions}
+                value={form.length}
+                onChange={handSelectChange('length')}
+              />
+            </Field>
+            <Field label="Для кого (необязательно)">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={150}
+                value={form.audience}
+                onChange={handInputChange('audience')}
+                placeholder="Например: студенты, офисные работники"
+              />
+            </Field>
+            <Field label="Характеристики и преимущества, через запятую" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={500}
+                value={form.keywords}
+                onChange={handInputChange('keywords')}
+                placeholder="Например: нержавеющая сталь, держит тепло 12 часов, не протекает"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'review' && (
+          <>
+            <Field label="Оценка клиента">
+              <Select
+                options={ratingOptions}
+                value={form.rating}
+                onChange={handSelectChange('rating')}
+              />
+            </Field>
+            <Field label="Тон ответа">
+              <Select
+                options={replyToneOptions}
+                value={form.replyTone}
+                onChange={handSelectChange('replyTone')}
+              />
+            </Field>
+            <Field label="Длина">
+              <Select
+                options={lengthOptions}
+                value={form.length}
+                onChange={handSelectChange('length')}
+              />
+            </Field>
+            <Field label="Название компании (необязательно)">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={100}
+                value={form.businessName}
+                onChange={handInputChange('businessName')}
+                placeholder="Например: кофейня «Зерно»"
+              />
+            </Field>
+            <Field label="Текст отзыва" wide>
+              <textarea
+                className={textareaClass}
+                maxLength={2000}
+                value={form.reviewText}
+                onChange={handInputChange('reviewText')}
+                placeholder="Вставь отзыв клиента"
+              />
+            </Field>
+            <Field label="Что предложить клиенту (необязательно)" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={300}
+                value={form.wishes}
+                onChange={handInputChange('wishes')}
+                placeholder="Например: скидка 10% на следующий заказ"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'claim' && (
+          <>
+            <Field label="Вид документа">
+              <Select
+                options={docKindOptions}
+                value={form.docKind}
+                onChange={handSelectChange('docKind')}
+              />
+            </Field>
+            <Field label="От кого (ФИО)">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={150}
+                value={form.author}
+                onChange={handInputChange('author')}
+                placeholder="Можно оставить пустым"
+              />
+            </Field>
+            <Field label="Кому (организация, должность)" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={200}
+                value={form.recipient}
+                onChange={handInputChange('recipient')}
+                placeholder="Например: директору ООО «Ромашка»"
+              />
+            </Field>
+            <Field label="Что произошло" wide>
+              <textarea
+                className={textareaClass}
+                maxLength={2000}
+                value={form.situation}
+                onChange={handInputChange('situation')}
+                placeholder="Опиши ситуацию своими словами: даты, суммы, что именно случилось"
+              />
+            </Field>
+            <Field label="Что требуется (необязательно)" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={300}
+                value={form.demand}
+                onChange={handInputChange('demand')}
+                placeholder="Например: вернуть деньги в течение 10 дней"
+              />
+            </Field>
+            <p className="col-span-1 sm:col-span-2 md:col-span-4 px-3 text-xs text-amber-600">
+              Это шаблон документа, а не юридическая консультация: проверь текст
+              перед отправкой. Паспортные данные и адрес лучше вписать в готовый
+              текст самому, здесь их вводить не нужно.
+            </p>
+          </>
+        )}
+
+        {mode === 'improve' && (
+          <>
+            <Field label="Что сделать с текстом">
+              <Select
+                options={improveGoalOptions}
+                value={form.improveGoal}
+                onChange={handSelectChange('improveGoal')}
+              />
+            </Field>
+            <Field label="Текст (до 3000 символов)" wide>
+              <textarea
+                className={textareaClass}
+                maxLength={3000}
+                value={form.sourceText}
+                onChange={handInputChange('sourceText')}
+                placeholder="Вставь текст, который нужно улучшить"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'business' && (
+          <>
+            <Field label="Тип письма">
+              <Select
+                options={letterKindOptions}
+                value={form.letterKind}
+                onChange={handSelectChange('letterKind')}
+              />
+            </Field>
+            <Field label="Тон">
+              <Select
+                options={businessToneOptions}
+                value={form.businessTone}
+                onChange={handSelectChange('businessTone')}
+              />
+            </Field>
+            <Field label="Длина">
+              <Select
+                options={lengthOptions}
+                value={form.length}
+                onChange={handSelectChange('length')}
+              />
+            </Field>
+            <Field label="От компании (необязательно)">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={100}
+                value={form.businessName}
+                onChange={handInputChange('businessName')}
+                placeholder="Например: ИП Иванов"
+              />
+            </Field>
+            <Field label="Кому (компания или имя, необязательно)" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={150}
+                value={form.addressee}
+                onChange={handInputChange('addressee')}
+                placeholder="Например: ООО «Альфа», Петрова А. С."
+              />
+            </Field>
+            <Field label="О чём письмо" wide>
+              <textarea
+                className={textareaClass}
+                maxLength={1500}
+                value={form.details}
+                onChange={handInputChange('details')}
+                placeholder="Что нужно сообщить: условия, суммы, сроки, номера счетов"
+              />
+            </Field>
           </>
         )}
       </div>

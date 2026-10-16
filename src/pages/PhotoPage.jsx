@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getApiBase, friendlyError } from '../api';
 import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
 import Collapse from '../components/Collapse';
@@ -118,8 +119,7 @@ export function PhotoPage() {
       formData.append('compression', photoForm.compression.value);
       formData.append('scale', photoForm.scale.value);
 
-      const photoApiUrl =
-        import.meta.env.VITE_PHOTO_API_URL || 'http://localhost:5001';
+      const photoApiUrl = await getApiBase('photo');
       const res = await fetch(`${photoApiUrl}/process`, {
         method: 'POST',
         body: formData,
@@ -140,7 +140,7 @@ export function PhotoPage() {
       await new Promise((r) => setTimeout(r, 300));
       setResultUrl(imageUrl);
     } catch (err) {
-      setError(err.message);
+      setError(friendlyError(err));
       console.error(err);
     } finally {
       setLoading(false);

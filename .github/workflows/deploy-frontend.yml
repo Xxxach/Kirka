@@ -39,6 +39,8 @@ jobs:
           VITE_BASE: ${{ vars.VITE_BASE || format('/{0}/', github.event.repository.name) }}
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_PHOTO_API_URL: ${{ vars.VITE_PHOTO_API_URL }}
+          VITE_API_URL_BACKUP: ${{ vars.VITE_API_URL_BACKUP }}
+          VITE_PHOTO_API_URL_BACKUP: ${{ vars.VITE_PHOTO_API_URL_BACKUP }}
 
       # Нужно, чтобы прямые ссылки вида /Kirka/photo-page открывались,
       # а не давали 404 от GitHub Pages (приложение само разберёт путь).

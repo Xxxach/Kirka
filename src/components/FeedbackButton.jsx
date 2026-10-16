@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getApiBase } from '../api';
 import { trackGoal } from '../analytics';
 
 export function FeedbackButton({ className = '' }) {
@@ -16,7 +17,7 @@ export function FeedbackButton({ className = '' }) {
     if (!message.trim()) return;
     setStatus('sending');
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = await getApiBase('text');
       const res = await fetch(`${apiUrl}/api/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

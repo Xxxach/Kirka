@@ -51,6 +51,15 @@ const defaultStyles = {
     ...base,
     transition: 'background-color 160ms ease, color 160ms ease',
   }),
+  // Заголовки групп (например, в списке «Что генерируем»).
+  groupHeading: (base) => ({
+    ...base,
+    textTransform: 'none',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    color: '#94a3b8',
+    padding: '6px 12px 2px',
+  }),
 };
 
 // Аккуратно совмещает наши стили по умолчанию с теми, что передаст
