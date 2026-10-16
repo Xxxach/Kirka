@@ -274,19 +274,22 @@ def enhance_image(img, level):
     lab = cv2.cvtColor(out, cv2.COLOR_BGR2LAB)
     l_ch, a_ch, b_ch = cv2.split(lab)
     del lab
-    l_ch = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8)).apply(l_ch)
+    # CLAHE вполсилы: полный даёт пересвет светлых тонов, а 50% — объём без «выкрученного» белого.
+    l_clahe = cv2.createCLAHE(clipLimit=1.2, tileGridSize=(8, 8)).apply(l_ch)
+    l_ch = cv2.addWeighted(l_ch, 0.5, l_clahe, 0.5, 0)
+    del l_clahe
     out = cv2.cvtColor(cv2.merge([l_ch, a_ch, b_ch]), cv2.COLOR_LAB2BGR)
     del l_ch, a_ch, b_ch
 
     hsv = cv2.cvtColor(out, cv2.COLOR_BGR2HSV)
     h_ch, s_ch, v_ch = cv2.split(hsv)
     del hsv
-    s_ch = cv2.convertScaleAbs(s_ch, alpha=1.08)  # +8% насыщенности, с насыщением у 255
+    s_ch = cv2.convertScaleAbs(s_ch, alpha=1.04)  # +4% насыщенности
     out = cv2.cvtColor(cv2.merge([h_ch, s_ch, v_ch]), cv2.COLOR_HSV2BGR)
     del h_ch, s_ch, v_ch
 
-    out = _unsharp(cv2, out, 0.5, 1.0)  # мелкие детали
-    return _unsharp(cv2, out, 0.2, 5.0)  # «чёткость» (локальный контраст)
+    out = _unsharp(cv2, out, 0.45, 1.0)  # мелкие детали
+    return _unsharp(cv2, out, 0.12, 5.0)  # «чёткость» (локальный контраст)
 
 
 def check_limit(cost=1):

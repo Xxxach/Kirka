@@ -124,15 +124,18 @@ export function Header() {
         </div>
       </div>
 
-      <div className="hidden md:flex items-center gap-3">
-        <div className="flex items-center justify-center gap-1 mx-auto px-1 py-1 bg-slate-200/50 backdrop-blur-xl rounded-full border border-white/60 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.2)]">
+      <div className="hidden md:grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div aria-hidden="true" />
+        <div className="flex items-center justify-center gap-1 px-1 py-1 bg-slate-200/50 backdrop-blur-xl rounded-full border border-white/60 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.2)]">
           {tabs.map(({ to, label, end }) => (
             <NavLink key={to} to={to} end={end} className={tabClass}>
               {label}
             </NavLink>
           ))}
         </div>
-        <FeedbackButton />
+        <div className="flex justify-end">
+          <FeedbackButton />
+        </div>
       </div>
 
       {/* Моб версия */}

@@ -112,7 +112,7 @@ export function LogoInfo({ children, className = 'items-start' }) {
               transform: visible ? 'scale(1)' : 'scale(0.9)',
               transition: `clip-path ${DURATION}ms ${EASE}, opacity ${DURATION * 0.7}ms ${EASE}, transform ${DURATION}ms ${EASE}`,
             }}
-            className="pointer-events-none fixed z-[200] rounded-3xl border border-white/60 bg-white/45 p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_12px_40px_-8px_rgba(0,0,0,0.25)] backdrop-blur-xl backdrop-saturate-150"
+            className="pointer-events-none fixed z-200 rounded-3xl border border-white/60 bg-white/45 p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_12px_40px_-8px_rgba(0,0,0,0.25)] backdrop-blur-xl backdrop-saturate-150"
           >
             <p className="mb-1 text-sm font-semibold text-[#7A2432]">
               Kirka (Кирка)
