@@ -215,6 +215,7 @@ def ensure_model_downloaded(scale):
 
 def upscale_tiled(sr, img, scale):
     """Увеличивает фото по плиткам: пиковая память ~постоянна для любого размера."""
+    import cv2
     h, w = img.shape[:2]
     out = np.empty((h * scale, w * scale, 3), dtype=np.uint8)
     for y0 in range(0, h, TILE):
@@ -224,6 +225,8 @@ def upscale_tiled(sr, img, scale):
             x1 = min(x0 + TILE, w)
             px0, px1 = max(0, x0 - TILE_PAD), min(w, x1 + TILE_PAD)
             tile = sr.upsample(np.ascontiguousarray(img[py0:py1, px0:px1]))
+            # Мягкая резкость на плитке с запасом (pad) — без швов и без лишней памяти.
+            tile = cv2.addWeighted(tile, 1.5, cv2.GaussianBlur(tile, (0, 0), 1.0), -0.5, 0)
             oy, ox = (y0 - py0) * scale, (x0 - px0) * scale
             out[y0 * scale:y1 * scale, x0 * scale:x1 * scale] = tile[
                 oy:oy + (y1 - y0) * scale, ox:ox + (x1 - x0) * scale
@@ -361,6 +364,12 @@ def process():
     if mode == "upscale":
         import cv2
 
+        if request.form.get("tier", "basic") != "basic":
+            return jsonify({
+                "error": "tier_locked",
+                "message": "Улучшенная модель откроется в ходе бета-теста.",
+            }), 400
+
         if scale not in (2, 4):  # в образе есть только модели x2 и x4
             scale = 2
 
@@ -386,7 +395,10 @@ def process():
         sr = get_sr_model(scale)
         upscaled = upscale_tiled(sr, cv_image, scale)
 
-        success, buffer = cv2.imencode(".jpg", upscaled, [cv2.IMWRITE_JPEG_QUALITY, 92])
+        jpeg_params = [cv2.IMWRITE_JPEG_QUALITY, 95]
+        if hasattr(cv2, "IMWRITE_JPEG_SAMPLING_FACTOR"):  # без потери цветовой чёткости (4:4:4)
+            jpeg_params += [cv2.IMWRITE_JPEG_SAMPLING_FACTOR, cv2.IMWRITE_JPEG_SAMPLING_FACTOR_444]
+        success, buffer = cv2.imencode(".jpg", upscaled, jpeg_params)
         if not success:
             return jsonify({"error": "Не удалось сохранить результат"}), 500
 
@@ -397,7 +409,7 @@ def process():
 
 @app.route("/health")
 def health():
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "sha": os.environ.get("GIT_SHA", "dev")})
 
 
 if __name__ == "__main__":

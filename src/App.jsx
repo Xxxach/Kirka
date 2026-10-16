@@ -10,6 +10,7 @@ import { TextPage } from './pages/TextPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { Header } from './components/Header';
+import { StatusBanner } from './components/StatusBanner';
 import { useAdBlockDetector } from './hooks/useAdBlockDetector';
 import { CookieNotice } from './components/CookieNotice';
 import { trackHit } from './analytics';
@@ -95,6 +96,7 @@ function App() {
   return (
     <BrowserRouter basename={ROUTER_BASENAME}>
       <RouteTracker />
+      <StatusBanner />
       <Header />
       <Suspense fallback={null}>
         <Routes>

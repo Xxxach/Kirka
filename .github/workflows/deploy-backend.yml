@@ -50,6 +50,7 @@ jobs:
             CF_API_TOKEN=${{ secrets.CF_API_TOKEN }}
             FRONTEND_ORIGIN=${{ vars.FRONTEND_ORIGIN }}
             TRUST_PROXY=true
+            GIT_SHA=${{ github.sha }}
 
       - name: Show URL
         run: |
@@ -92,6 +93,7 @@ jobs:
           revision-env: |
             FRONTEND_ORIGIN=${{ vars.FRONTEND_ORIGIN }}
             TRUST_PROXY=true
+            GIT_SHA=${{ github.sha }}
             ENABLED_HEAVY_MODES=upscale
 
       - name: Show URL

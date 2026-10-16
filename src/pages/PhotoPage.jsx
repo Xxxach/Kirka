@@ -41,6 +41,12 @@ function readImageSize(file) {
   });
 }
 
+// Модель увеличения. «Улучшенная» откроется после переезда на мощный сервер.
+const upscaleTierOptions = [
+  { value: 'basic', label: 'Упрощённая (быстро, большие фото)' },
+  { value: 'pro', label: 'Улучшенная — скоро', locked: true },
+];
+
 const scaleOptions = [
   { value: '2', label: 'x2' },
   { value: '4', label: 'x4' },
@@ -57,6 +63,7 @@ export function PhotoPage() {
     mode: photoModeOptions[0],
     compression: compressLevelOptions[1],
     scale: scaleOptions[0],
+    tier: upscaleTierOptions[0],
   });
   const [file, setFile] = useState(null);
 
@@ -118,6 +125,7 @@ export function PhotoPage() {
       formData.append('mode', photoForm.mode.value);
       formData.append('compression', photoForm.compression.value);
       formData.append('scale', photoForm.scale.value);
+      formData.append('tier', photoForm.tier.value);
 
       const photoApiUrl = await getApiBase('photo');
       const res = await fetch(`${photoApiUrl}/process`, {
@@ -167,6 +175,10 @@ export function PhotoPage() {
     setPhotoForm((prev) => ({ ...prev, compression: selectedOption }));
   };
 
+  const handleTierChange = (selectedOption) => {
+    setPhotoForm((prev) => ({ ...prev, tier: selectedOption }));
+  };
+
   const handleScaleChange = (selectedOption) => {
     setPhotoForm((prev) => ({ ...prev, scale: selectedOption }));
   };
@@ -204,13 +216,28 @@ export function PhotoPage() {
           />
         </Collapse>
         <Collapse show={photoForm.mode.value === 'upscale'}>
-          <Select
-            options={scaleOptions}
-            value={photoForm.scale}
-            onChange={handleScaleChange}
-            menuPortalTarget={document.body}
-            styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
-          />
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <Select
+                options={upscaleTierOptions}
+                value={photoForm.tier}
+                onChange={handleTierChange}
+                isOptionDisabled={(option) => option.locked}
+                menuPortalTarget={document.body}
+                styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+              />
+              <p className="text-xs text-slate-400 px-1">
+                Улучшенная модель с лучшей детализацией откроется в ходе бета-теста.
+              </p>
+            </div>
+            <Select
+              options={scaleOptions}
+              value={photoForm.scale}
+              onChange={handleScaleChange}
+              menuPortalTarget={document.body}
+              styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+            />
+          </div>
         </Collapse>
 
         <AdSlot />

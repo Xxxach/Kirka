@@ -108,7 +108,7 @@ app.use(express.json({ limit: '20kb' }));
 
 // Лёгкая точка для "будильника" (UptimeRobot / cron-job.org),
 // чтобы бесплатный Render не засыпал через 15 минут простоя.
-app.get('/health', (req, res) => res.status(200).send('ok'));
+app.get('/health', (req, res) => res.status(200).json({ ok: true, sha: process.env.GIT_SHA || 'dev' }));
 
 // ---------- Обратная связь ----------
 
@@ -528,7 +528,7 @@ for (const [route, build] of Object.entries(routeHandlers)) {
       const call = TIERS[req.tier].call;
       const raw = await call(build(req.body));
       const result = route === 'code' ? stripCodeFence(raw) : raw;
-      res.json({ result, remaining: req.remaining, tier: req.tier });
+      res.json({ result, remaining: req.remaining, tier: req.tier, mode: req.body.mode });
     } catch (e) {
       console.error(e.message);
       res.status(500).json({ error: 'AI request failed', message: e.userMessage || 'Не удалось выполнить запрос' });

@@ -341,6 +341,10 @@ export function TextPage() {
       if (!res.ok)
         throw new Error(data.message || 'Не удалось выполнить запрос');
 
+      // Старый сервер не знает новых видов текста и молча отдаёт резюме: он не вернёт mode.
+      if (data.mode !== mode)
+        throw new Error('Сервер обновляется и пока не поддерживает этот вид текста. Попробуй чуть позже.');
+
       trackGoal('text_generated', { mode });
       setFillState('done');
       await new Promise((r) => setTimeout(r, 300));
