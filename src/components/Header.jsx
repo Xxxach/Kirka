@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AdSlot } from './AdSlot';
 import { FeedbackButton } from './FeedbackButton';
+import { DescriptionButton } from './DescriptionButton';
 import { SectionsPopover } from './SectionsPopover';
 import { Logo, BetkaMetka, LogoInfo } from './Logo';
 
@@ -274,7 +275,9 @@ export function Header() {
       </div>
 
       <div className="hidden md:grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <div aria-hidden="true" />
+        <div className="flex justify-start">
+          <DescriptionButton />
+        </div>
         <TabsCapsule />
         <div className="flex justify-end">
           <FeedbackButton />
@@ -300,9 +303,14 @@ export function Header() {
       </div>
 
       {/* Мобильные разделы — отдельная плавающая «таблетка», как десктопные табы. */}
-      <div className="md:hidden relative z-55 flex justify-end gap-2 pointer-events-none">
+      <div className="md:hidden relative z-55 grid grid-cols-[1fr_auto_1fr] items-center gap-2 pointer-events-none">
+        <div className="flex justify-start">
+          <DescriptionButton className="pointer-events-auto" />
+        </div>
         <FeedbackButton className="pointer-events-auto" />
-        <SectionsPopover tabs={tabs} className="pointer-events-auto" />
+        <div className="flex justify-end">
+          <SectionsPopover tabs={tabs} className="pointer-events-auto" />
+        </div>
       </div>
     </div>
   );
