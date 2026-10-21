@@ -188,7 +188,7 @@ export function FilePage() {
         <div className="flex flex-col gap-1">
           {error && <p className="text-red-600 px-1">{error}</p>}
           <button
-            className="bg-[#7A2432] hover:bg-[#5c1c28] rounded-full text-white px-12 py-3 shadow-sm transition-colors disabled:opacity-50"
+            className="gel bg-[#7A2432] hover:bg-[#5c1c28] rounded-full text-white px-12 py-3 shadow-sm transition-colors disabled:opacity-50"
             onClick={handleGenerate}
             disabled={loading}
           >

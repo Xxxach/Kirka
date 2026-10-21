@@ -928,7 +928,7 @@ export function TextPage() {
         <AdSlot className="order-2 md:order-1 md:flex-1" />
         <div className="order-1 md:order-2 flex flex-col items-center gap-1 md:w-56">
           <button
-            className="bg-[#7A2432] hover:bg-[#5c1c28] rounded-full text-white px-12 py-3 shadow-sm transition-colors disabled:opacity-50 w-full"
+            className="gel bg-[#7A2432] hover:bg-[#5c1c28] rounded-full text-white px-12 py-3 shadow-sm transition-colors disabled:opacity-50 w-full"
             onClick={handleGenerate}
             disabled={loading}
           >

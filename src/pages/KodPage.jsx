@@ -306,7 +306,7 @@ export function KodPage() {
             </svg>
           </div>
           <button
-            className="bg-[#7A2432] hover:bg-[#5c1c28] rounded-full text-white px-10 py-1 md:px-12 md:py-3 shadow-sm transition-colors disabled:opacity-50"
+            className="gel bg-[#7A2432] hover:bg-[#5c1c28] rounded-full text-white px-10 py-1 md:px-12 md:py-3 shadow-sm transition-colors disabled:opacity-50"
             onClick={handleGenerate}
             disabled={loading}
           >
