@@ -139,25 +139,34 @@ body {
 .fb-panel {
   position: fixed;
   z-index: 101;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.fb-shell {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   border-radius: 28px;
-  transform-origin: 0 0;
-  /* transform, opacity и скругление ведёт пружина из FeedbackButton.jsx (без пересчёта вёрстки). */
-  will-change: transform, opacity;
   opacity: 0;
   background: rgba(255, 255, 255, 0.66);
   -webkit-backdrop-filter: blur(22px) saturate(1.7);
   backdrop-filter: blur(22px) saturate(1.7);
   border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 22px 50px -14px rgba(15, 23, 42, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.fb-shadow {
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 22px 50px -14px rgba(15, 23, 42, 0.38);
 }
 .fb-panel.is-open {
   transition: height 0.42s cubic-bezier(0.22, 1.05, 0.36, 1);
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .fb-panel {
+  .fb-shell {
     background: rgba(255, 255, 255, 0.95);
   }
 }

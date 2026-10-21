@@ -39,6 +39,8 @@ export function FeedbackButton({ className = '' }) {
   const timersRef = useRef([]);
   const phaseRef = useRef('closed');
   const panelRef = useRef(null);
+  const shellRef = useRef(null);
+  const shadowRef = useRef(null);
   const geoRef = useRef(null);
   const springRef = useRef({ x: 0, vx: 0, y: 0, vy: 0, raf: 0 });
 
@@ -57,9 +59,11 @@ export function FeedbackButton({ className = '' }) {
   // Пружина: пишет transform, скругление и прозрачность прямо в DOM, минуя React.
   useEffect(() => {
     const el = panelRef.current;
+    const shell = shellRef.current;
+    const shadow = shadowRef.current;
     const g = geoRef.current;
     const inner = innerRef.current;
-    if (!el || !g || !inner || (phase !== 'open' && phase !== 'closing')) return undefined;
+    if (!el || !shell || !shadow || !g || !inner || (phase !== 'open' && phase !== 'closing')) return undefined;
 
     const opening = phase === 'open';
     const spring = springRef.current;
@@ -70,6 +74,7 @@ export function FeedbackButton({ className = '' }) {
     const r0 = g.height / 2;
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+    let lastRadius = '';
     const paint = () => {
       const px = clamp(spring.x, 0, 1.25);
       const py = clamp(spring.y, 0, 1.25);
@@ -78,17 +83,27 @@ export function FeedbackButton({ className = '' }) {
       const radius = Math.max(0, r0 + (PANEL_RADIUS - r0) * px);
       el.style.transform = `translate3d(${dx0 * (1 - px)}px, 0, 0) scale(${sx}, ${sy})`;
       // Углы пересчитываем под растяжение, чтобы на экране они оставались круглыми.
-      el.style.borderRadius = `${radius / sx}px / ${radius / sy}px`;
-      el.style.opacity = String(clamp(px / 0.18, 0, 1));
+      const rx = Math.round((radius / sx) * 2) / 2;
+      const ry = Math.round((radius / sy) * 2) / 2;
+      const nextRadius = `${rx}px / ${ry}px`;
+      if (nextRadius !== lastRadius) {
+        lastRadius = nextRadius;
+        shell.style.borderRadius = nextRadius;
+      }
+      const alpha = String(clamp(px / 0.18, 0, 1));
+      shell.style.opacity = alpha;
+      shadow.style.opacity = alpha;
     };
 
     const finish = () => {
       if (opening) {
         el.style.transform = 'translate3d(0, 0, 0) scale(1, 1)';
-        el.style.borderRadius = `${PANEL_RADIUS}px`;
-        el.style.opacity = '1';
+        shell.style.borderRadius = `${PANEL_RADIUS}px`;
+        shell.style.opacity = '1';
+        shadow.style.opacity = '1';
       } else {
-        el.style.opacity = '0';
+        shell.style.opacity = '0';
+        shadow.style.opacity = '0';
       }
     };
 
@@ -282,6 +297,7 @@ export function FeedbackButton({ className = '' }) {
               className={`fb-panel${expanded ? ' is-open' : ''}${phase === 'closing' ? ' is-closing' : ''}`}
               style={panelStyle}
             >
+              <div ref={shellRef} className="fb-shell">
               <div
                 ref={innerRef}
                 className="fb-inner p-5"
@@ -341,6 +357,8 @@ export function FeedbackButton({ className = '' }) {
                   </>
                 )}
               </div>
+              </div>
+              <div ref={shadowRef} className="fb-shadow" />
             </div>
           </>,
           document.body,
