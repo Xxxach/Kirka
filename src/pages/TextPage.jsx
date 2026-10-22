@@ -12,6 +12,9 @@ const modeGroups = [
       { value: 'letter', label: 'Сопроводительное письмо' },
       { value: 'claim', label: 'Заявление / претензия' },
       { value: 'business', label: 'Деловое письмо' },
+      { value: 'vacancy', label: 'Описание вакансии' },
+      { value: 'reference', label: 'Характеристика' },
+      { value: 'motivation', label: 'Мотивационное письмо' },
     ],
   },
   {
@@ -21,6 +24,7 @@ const modeGroups = [
       { value: 'ad', label: 'Объявление' },
       { value: 'review', label: 'Ответ на отзыв' },
       { value: 'slogan', label: 'Слоган / название' },
+      { value: 'service', label: 'Описание услуги' },
     ],
   },
   {
@@ -28,11 +32,20 @@ const modeGroups = [
     options: [
       { value: 'post', label: 'Пост для соцсети' },
       { value: 'greeting', label: 'Поздравление' },
+      { value: 'toast', label: 'Тост / речь' },
+      { value: 'script', label: 'Сценарий короткого видео' },
+      { value: 'bio', label: 'Описание профиля (био)' },
+      { value: 'headline', label: 'Заголовки' },
+      { value: 'reply', label: 'Ответ на письмо / сообщение' },
     ],
   },
   {
-    label: 'Редактура',
-    options: [{ value: 'improve', label: 'Улучшить текст' }],
+    label: 'Учёба и редактура',
+    options: [
+      { value: 'improve', label: 'Улучшить текст' },
+      { value: 'summary', label: 'Краткий пересказ' },
+      { value: 'essay', label: 'Сочинение / эссе' },
+    ],
   },
 ];
 const modeOptions = modeGroups.flatMap((g) => g.options);
@@ -87,6 +100,12 @@ const letterKindOptions = [
   { value: 'invite', label: 'Приглашение на встречу' },
 ];
 
+const summaryKindOptions = [
+  { value: 'retell', label: 'Краткий пересказ' },
+  { value: 'bullets', label: 'Главное списком' },
+  { value: 'thesis', label: 'Главная мысль в 1-2 предложениях' },
+];
+
 const businessToneOptions = [
   { value: 'strict', label: 'Строго официальный' },
   { value: 'friendly', label: 'Деловой, дружелюбный' },
@@ -99,6 +118,16 @@ const REQUIRED = {
   claim: ['situation', 'Опиши, что произошло'],
   improve: ['sourceText', 'Вставь текст, который нужно улучшить'],
   business: ['details', 'Опиши, о чём письмо'],
+  vacancy: ['itemName', 'Укажи должность'],
+  reference: ['details', 'Опиши качества и достижения'],
+  motivation: ['details', 'Расскажи о себе'],
+  summary: ['sourceText', 'Вставь текст для пересказа'],
+  reply: ['sourceText', 'Вставь сообщение, на которое нужно ответить'],
+  script: ['keywords', 'Укажи тему видео'],
+  bio: ['keywords', 'Напиши, чем ты занимаешься'],
+  headline: ['keywords', 'Укажи тему'],
+  essay: ['itemName', 'Укажи тему сочинения'],
+  service: ['itemName', 'Укажи услугу'],
 };
 
 const FIELD_LABEL = 'text-xs text-slate-500 font-semibold';
@@ -228,6 +257,7 @@ const initialForm = {
   demand: '',
   sourceText: '',
   improveGoal: improveGoalOptions[0],
+  summaryKind: summaryKindOptions[0],
   letterKind: letterKindOptions[0],
   addressee: '',
   details: '',
@@ -330,6 +360,7 @@ export function TextPage() {
           demand: form.demand,
           sourceText: form.sourceText,
           improveGoal: form.improveGoal?.value,
+          summaryKind: form.summaryKind?.value,
           letterKind: form.letterKind?.value,
           addressee: form.addressee,
           details: form.details,
@@ -483,7 +514,7 @@ export function TextPage() {
           </>
         )}
 
-        {mode === 'greeting' && (
+        {(mode === 'greeting' || mode === 'toast') && (
           <>
             <div className="flex flex-col gap-1 p-3">
               <p className={labelClass}>Повод</p>
@@ -920,6 +951,379 @@ export function TextPage() {
                 placeholder="Что нужно сообщить: условия, суммы, сроки, номера счетов"
               />
             </Field>
+          </>
+        )}
+
+        {mode === 'vacancy' && (
+          <>
+            <Field label="Должность">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={100}
+                value={form.itemName}
+                onChange={handInputChange('itemName')}
+                placeholder="Например: менеджер по продажам"
+              />
+            </Field>
+            <Field label="Компания (необязательно)">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={100}
+                value={form.businessName}
+                onChange={handInputChange('businessName')}
+                placeholder="Например: ООО «Ромашка»"
+              />
+            </Field>
+            <Field label="Длина">
+              <Select
+                options={lengthOptions}
+                value={form.length}
+                onChange={handSelectChange('length')}
+              />
+            </Field>
+            <Field label="Условия (необязательно)">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={400}
+                value={form.wishes}
+                onChange={handInputChange('wishes')}
+                placeholder="Зарплата, график, формат работы"
+              />
+            </Field>
+            <Field label="Обязанности и требования" wide>
+              <textarea
+                className={textareaClass}
+                maxLength={1500}
+                value={form.details}
+                onChange={handInputChange('details')}
+                placeholder="Что предстоит делать и кого вы ищете. Можно оставить пустым"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'reference' && (
+          <>
+            <Field label="ФИО (на кого характеристика)">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={100}
+                value={form.recipientName}
+                onChange={handInputChange('recipientName')}
+                placeholder="Можно оставить пустым"
+              />
+            </Field>
+            <Field label="Должность или класс">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={100}
+                value={form.itemName}
+                onChange={handInputChange('itemName')}
+                placeholder="Например: старший бухгалтер"
+              />
+            </Field>
+            <Field label="Организация" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={150}
+                value={form.businessName}
+                onChange={handInputChange('businessName')}
+                placeholder="Например: ООО «Ромашка» или школа №5"
+              />
+            </Field>
+            <Field label="Качества и достижения" wide>
+              <textarea
+                className={textareaClass}
+                maxLength={1500}
+                value={form.details}
+                onChange={handInputChange('details')}
+                placeholder="Чем отличился, какие навыки, как работает в коллективе"
+              />
+            </Field>
+            <p className="col-span-1 sm:col-span-2 md:col-span-4 px-3 text-xs text-amber-600">
+              Это шаблон: проверь текст и впиши даты и подпись сам.
+            </p>
+          </>
+        )}
+
+        {mode === 'motivation' && (
+          <>
+            <Field label="Куда пишем">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={150}
+                value={form.itemName}
+                onChange={handInputChange('itemName')}
+                placeholder="Программа, вуз, стажировка или компания"
+              />
+            </Field>
+            <Field label="Длина">
+              <Select
+                options={lengthOptions}
+                value={form.length}
+                onChange={handSelectChange('length')}
+              />
+            </Field>
+            <Field label="О себе" wide>
+              <textarea
+                className={textareaClass}
+                maxLength={1500}
+                value={form.details}
+                onChange={handInputChange('details')}
+                placeholder="Образование, опыт, интересы, чего хочешь достичь"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'service' && (
+          <>
+            <Field label="Услуга">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={150}
+                value={form.itemName}
+                onChange={handInputChange('itemName')}
+                placeholder="Например: репетитор по математике"
+              />
+            </Field>
+            <Field label="Для кого (необязательно)">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={150}
+                value={form.audience}
+                onChange={handInputChange('audience')}
+                placeholder="Например: школьники 9-11 классов"
+              />
+            </Field>
+            <Field label="Цена (необязательно)">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={60}
+                value={form.price}
+                onChange={handInputChange('price')}
+                placeholder="Например: от 1500 ₽ за занятие"
+              />
+            </Field>
+            <Field label="Длина">
+              <Select
+                options={lengthOptions}
+                value={form.length}
+                onChange={handSelectChange('length')}
+              />
+            </Field>
+            <Field label="Преимущества, опыт, условия" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={500}
+                value={form.keywords}
+                onChange={handInputChange('keywords')}
+                placeholder="Например: 5 лет опыта, онлайн и очно, пробное занятие бесплатно"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'script' && (
+          <>
+            <Field label="Тон">
+              <Select
+                options={postToneOptions}
+                value={form.postTone}
+                onChange={handSelectChange('postTone')}
+              />
+            </Field>
+            <Field label="Длительность">
+              <Select
+                options={lengthOptions}
+                value={form.length}
+                onChange={handSelectChange('length')}
+              />
+            </Field>
+            <Field label="Призыв к действию (необязательно)" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={150}
+                value={form.cta}
+                onChange={handInputChange('cta')}
+                placeholder="Например: подпишись, напиши в комментариях"
+              />
+            </Field>
+            <Field label="Тема видео" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={400}
+                value={form.keywords}
+                onChange={handInputChange('keywords')}
+                placeholder="О чём ролик"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'bio' && (
+          <>
+            <Field label="Платформа">
+              <Select
+                options={platformOptions}
+                value={form.platform}
+                onChange={handSelectChange('platform')}
+              />
+            </Field>
+            <Field label="Тон">
+              <Select
+                options={postToneOptions}
+                value={form.postTone}
+                onChange={handSelectChange('postTone')}
+              />
+            </Field>
+            <Field label="Чем занимаешься, чем полезен" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={300}
+                value={form.keywords}
+                onChange={handInputChange('keywords')}
+                placeholder="Например: фотограф, свадьбы, Москва"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'headline' && (
+          <>
+            <Field label="Тон">
+              <Select
+                options={postToneOptions}
+                value={form.postTone}
+                onChange={handSelectChange('postTone')}
+              />
+            </Field>
+            <Field label="Сколько вариантов">
+              <input
+                className={inputClass}
+                type="number"
+                value={form.variantsCount}
+                onChange={handNumberChange('variantsCount')}
+                placeholder="5"
+              />
+            </Field>
+            <Field label="Тема" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={300}
+                value={form.keywords}
+                onChange={handInputChange('keywords')}
+                placeholder="О чём статья, пост или видео"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'reply' && (
+          <>
+            <Field label="Тон ответа">
+              <Select
+                options={replyToneOptions}
+                value={form.replyTone}
+                onChange={handSelectChange('replyTone')}
+              />
+            </Field>
+            <Field label="Длина">
+              <Select
+                options={lengthOptions}
+                value={form.length}
+                onChange={handSelectChange('length')}
+              />
+            </Field>
+            <Field label="Сообщение, на которое отвечаем" wide>
+              <textarea
+                className={textareaClass}
+                maxLength={3000}
+                value={form.sourceText}
+                onChange={handInputChange('sourceText')}
+                placeholder="Вставь письмо или сообщение"
+              />
+            </Field>
+            <Field label="Что хочу ответить (необязательно)" wide>
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={600}
+                value={form.details}
+                onChange={handInputChange('details')}
+                placeholder="Например: согласен, но нужна неделя"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'summary' && (
+          <>
+            <Field label="Что сделать">
+              <Select
+                options={summaryKindOptions}
+                value={form.summaryKind}
+                onChange={handSelectChange('summaryKind')}
+              />
+            </Field>
+            <Field label="Текст (до 5000 символов)" wide>
+              <textarea
+                className={textareaClass}
+                maxLength={5000}
+                value={form.sourceText}
+                onChange={handInputChange('sourceText')}
+                placeholder="Вставь текст, который нужно пересказать"
+              />
+            </Field>
+          </>
+        )}
+
+        {mode === 'essay' && (
+          <>
+            <Field label="Тема">
+              <input
+                className={inputClass}
+                type="text"
+                maxLength={150}
+                value={form.itemName}
+                onChange={handInputChange('itemName')}
+                placeholder="Например: Роль книги в жизни человека"
+              />
+            </Field>
+            <Field label="Объём">
+              <Select
+                options={lengthOptions}
+                value={form.length}
+                onChange={handSelectChange('length')}
+              />
+            </Field>
+            <Field label="Тезисы и пожелания (необязательно)" wide>
+              <textarea
+                className={textareaClass}
+                maxLength={1000}
+                value={form.details}
+                onChange={handInputChange('details')}
+                placeholder="Какие мысли и примеры использовать"
+              />
+            </Field>
+            <p className="col-span-1 sm:col-span-2 md:col-span-4 px-3 text-xs text-amber-600">
+              Это черновик для вдохновения: проверь факты и перепиши своими словами.
+            </p>
           </>
         )}
       </div>
