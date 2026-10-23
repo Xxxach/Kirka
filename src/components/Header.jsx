@@ -256,9 +256,116 @@ function TabsCapsule() {
   );
 }
 
+function ThemeToggle() {
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage.getItem('kirka-theme') === 'dark';
+    } catch {
+      return false;
+    }
+  });
+  const [dragX, setDragX] = useState(null);
+  const pointerRef = useRef(null);
+  const suppressClickRef = useRef(false);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark-theme', isDark);
+    try {
+      window.localStorage.setItem('kirka-theme', isDark ? 'dark' : 'light');
+    } catch {
+      // Переключение темы работает и без доступа к localStorage.
+    }
+  }, [isDark]);
+
+  const handlePointerDown = (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    pointerRef.current = {
+      id: event.pointerId,
+      startX: event.clientX,
+      dragging: false,
+      x: isDark ? 27 : 0,
+    };
+    setDragX(isDark ? 27 : 0);
+  };
+
+  const handlePointerMove = (event) => {
+    const pointer = pointerRef.current;
+    if (!pointer || pointer.id !== event.pointerId) return;
+    if (!pointer.dragging && Math.abs(event.clientX - pointer.startX) < 5) return;
+    if (!pointer.dragging) {
+      pointer.dragging = true;
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Захват указателя нужен только после начала перетаскивания.
+      }
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    pointer.x = Math.min(27, Math.max(0, event.clientX - rect.left - 16));
+    setDragX(pointer.x);
+  };
+
+  const finishPointer = (event) => {
+    const pointer = pointerRef.current;
+    if (!pointer || pointer.id !== event.pointerId) return;
+    pointerRef.current = null;
+    setDragX(null);
+    if (!pointer.dragging) return;
+    suppressClickRef.current = true;
+    setIsDark(pointer.x >= 13.5);
+    window.setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 0);
+  };
+
+  const handleClickCapture = (event) => {
+    if (!suppressClickRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  return (
+    <div
+      className="tab-capsule theme-toggle pointer-events-auto"
+      role="group"
+      aria-label="Тема оформления"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={finishPointer}
+      onPointerCancel={finishPointer}
+      onClickCapture={handleClickCapture}
+    >
+      <span
+        aria-hidden="true"
+        className={`tab-liquid theme-toggle-liquid${isDark ? ' is-dark' : ''}`}
+        style={dragX === null ? undefined : { transform: `translateX(${dragX}px)` }}
+      />
+      <button
+        type="button"
+        className={`theme-toggle-option${!isDark ? ' is-active' : ''}`}
+        aria-label="Светлая тема"
+        aria-pressed={!isDark}
+        onClick={() => setIsDark(false)}
+      >
+        ☼
+      </button>
+      <button
+        type="button"
+        className={`theme-toggle-option${isDark ? ' is-active' : ''}`}
+        aria-label="Тёмная тема"
+        aria-pressed={isDark}
+        onClick={() => setIsDark(true)}
+      >
+        ☾
+      </button>
+    </div>
+  );
+}
+
 export function Header() {
   return (
-    <div className="sticky top-0 z-50 flex flex-col gap-1 p-3">
+    <>
+      <div className="sticky top-0 z-50 flex flex-col gap-1 p-3">
       {/* Десктопная версия */}
       <div className="hidden md:flex items-center justify-between gap-15 px-5 py-4 glass-bar rounded-3xl">
         <LogoInfo>
@@ -279,7 +386,8 @@ export function Header() {
           <DescriptionButton />
         </div>
         <TabsCapsule />
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-2">
+          <ThemeToggle />
           <FeedbackButton />
         </div>
       </div>
@@ -307,11 +415,15 @@ export function Header() {
         <div className="flex justify-start">
           <DescriptionButton className="pointer-events-auto" />
         </div>
-        <FeedbackButton className="pointer-events-auto" />
+        <div className="flex items-center justify-center gap-2 pointer-events-none">
+          <ThemeToggle />
+          <FeedbackButton className="pointer-events-auto" />
+        </div>
         <div className="flex justify-end">
           <SectionsPopover tabs={tabs} className="pointer-events-auto" />
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
