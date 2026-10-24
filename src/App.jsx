@@ -13,6 +13,7 @@ import { Header } from './components/Header';
 import { useAdBlockDetector } from './hooks/useAdBlockDetector';
 import { CookieNotice } from './components/CookieNotice';
 import { trackHit } from './analytics';
+import { modeForPath, modeOptions, modePath, isTextPathname, normalizePath } from './data/textModes';
 
 const loadPhotoPage = () =>
   import('./pages/PhotoPage').then((m) => ({ default: m.PhotoPage }));
@@ -32,6 +33,7 @@ const ROUTER_BASENAME = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
 const DEFAULT_TITLE =
   'Kirka (Кирка) — ИИ-тексты, перевод кода, сжатие фото и файлов';
 const PAGE_TITLES = {
+  ...Object.fromEntries(modeOptions.map((mode) => [modePath(mode.value), mode.title])),
   '/': DEFAULT_TITLE,
   '/photo-page': 'Фото: сжатие и обработка — Kirka',
   '/kod-page': 'Перевод кода между языками — Kirka',
@@ -44,11 +46,30 @@ const PAGE_TITLES = {
 function RouteTracker() {
   const location = useLocation();
   useEffect(() => {
-    document.title =
-      PAGE_TITLES[location.pathname] ?? 'Страница не найдена — Kirka';
+    const path = normalizePath(location.pathname);
+    document.title = PAGE_TITLES[path] ?? 'Страница не найдена — Kirka';
+
+    const description = document.querySelector('meta[name="description"]');
+    if (description) {
+      if (!description.dataset.default) description.dataset.default = description.content;
+      const mode = modeForPath(path);
+      description.content =
+        mode && path !== '/' ? mode.description : description.dataset.default;
+    }
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) {
+      if (!canonical.dataset.base) canonical.dataset.base = canonical.href;
+      const known = path === '/' || path in PAGE_TITLES;
+      canonical.href = known && path !== '/' ? `${new URL(canonical.dataset.base).origin}${path}/` : canonical.dataset.base;
+    }
     trackHit(window.location.href, document.title);
   }, [location.pathname, location.search]);
   return null;
+}
+
+function TextRoute() {
+  const { pathname } = useLocation();
+  return isTextPathname(pathname) ? <TextPage /> : <NotFoundPage />;
 }
 
 function App() {
@@ -98,12 +119,11 @@ function App() {
       <Header />
       <Suspense fallback={null}>
         <Routes>
-          <Route index element={<TextPage />} />
           <Route path="photo-page" element={<PhotoPage />} />
           <Route path="kod-page" element={<KodPage />} />
           <Route path="file-page" element={<FilePage />} />
           <Route path="privacy" element={<PrivacyPage />} />
-          <Route path="*" element={<NotFoundPage />} />
+          <Route path="*" element={<TextRoute />} />
         </Routes>
       </Suspense>
       <footer className="text-center py-4">

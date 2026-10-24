@@ -3,52 +3,9 @@ import { getApiBase, friendlyError } from '../api';
 import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
 import { useState } from 'react';
-
-const modeGroups = [
-  {
-    label: 'Работа и документы',
-    options: [
-      { value: 'resume', label: 'Резюме' },
-      { value: 'letter', label: 'Сопроводительное письмо' },
-      { value: 'claim', label: 'Заявление / претензия' },
-      { value: 'business', label: 'Деловое письмо' },
-      { value: 'vacancy', label: 'Описание вакансии' },
-      { value: 'reference', label: 'Характеристика' },
-      { value: 'motivation', label: 'Мотивационное письмо' },
-    ],
-  },
-  {
-    label: 'Продажи и бизнес',
-    options: [
-      { value: 'marketplace', label: 'Описание товара для маркетплейса' },
-      { value: 'ad', label: 'Объявление' },
-      { value: 'review', label: 'Ответ на отзыв' },
-      { value: 'slogan', label: 'Слоган / название' },
-      { value: 'service', label: 'Описание услуги' },
-    ],
-  },
-  {
-    label: 'Соцсети и общение',
-    options: [
-      { value: 'post', label: 'Пост для соцсети' },
-      { value: 'greeting', label: 'Поздравление' },
-      { value: 'toast', label: 'Тост / речь' },
-      { value: 'script', label: 'Сценарий короткого видео' },
-      { value: 'bio', label: 'Описание профиля (био)' },
-      { value: 'headline', label: 'Заголовки' },
-      { value: 'reply', label: 'Ответ на письмо / сообщение' },
-    ],
-  },
-  {
-    label: 'Учёба и редактура',
-    options: [
-      { value: 'improve', label: 'Улучшить текст' },
-      { value: 'summary', label: 'Краткий пересказ' },
-      { value: 'essay', label: 'Сочинение / эссе' },
-    ],
-  },
-];
-const modeOptions = modeGroups.flatMap((g) => g.options);
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ModePicker } from '../components/ModePicker';
+import { modeForPath, modePath } from '../data/textModes';
 
 // Значение этих полей уходит на сервер как value (там по нему подбирается инструкция).
 const marketplaceOptions = [
@@ -220,7 +177,6 @@ const barStyles = {
 };
 
 const initialForm = {
-  mode: modeOptions[0],
   tier: tierOptions[0],
   unit: unitOptions[0],
   prof: profOptions[0],
@@ -271,7 +227,9 @@ export function TextPage() {
   const [error, setError] = useState('');
   const [fillState, setFillState] = useState('idle');
 
-  const mode = form.mode.value;
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const mode = modeForPath(pathname)?.value ?? 'resume';
 
   const handSelectChange = (field) => (option) => {
     setForm((prev) => ({ ...prev, [field]: option }));
@@ -400,11 +358,7 @@ export function TextPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <div className="flex flex-col gap-1 p-3">
           <p className={labelClass}>Что генерируем</p>
-          <Select
-            options={modeGroups}
-            value={form.mode}
-            onChange={handSelectChange('mode')}
-          />
+          <ModePicker value={mode} onChange={(next) => navigate(modePath(next))} />
         </div>
         <div className="flex flex-col gap-1 p-3">
           <p className={labelClass}>Модель</p>

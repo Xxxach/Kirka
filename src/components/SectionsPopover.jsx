@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
+import { isTextPathname } from '../data/textModes';
 
 const PANEL_WIDTH = 260;
 const EDGE = 12;
@@ -23,6 +24,7 @@ function stepSpring(state, key, target, { k, c }, dt) {
 }
 
 export function SectionsPopover({ tabs, className = '' }) {
+  const { pathname } = useLocation();
   const [phase, setPhase] = useState('closed');
   const [geo, setGeo] = useState(null);
   const [contentHeight, setContentHeight] = useState(0);
@@ -264,7 +266,7 @@ export function SectionsPopover({ tabs, className = '' }) {
                       onClick={closePanel}
                       className={({ isActive }) =>
                         `rounded-2xl px-4 py-3 text-sm font-medium transition-colors ${
-                          isActive
+                          (to === '/' ? isTextPathname(pathname) : isActive)
                             ? 'bg-white/90 text-[#7A2432] shadow-[0_2px_10px_-2px_rgba(122,36,50,0.25)]'
                             : 'text-slate-600 hover:bg-white/55 hover:text-slate-900'
                         }`

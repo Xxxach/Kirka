@@ -1,9 +1,14 @@
+import { modeByPath } from './textModes';
+
+const textDescriptions = Object.fromEntries(
+  Object.entries(modeByPath).map(([path, mode]) => [
+    path,
+    { title: mode.label, text: mode.description, points: mode.points },
+  ]),
+);
+
 export const pageDescriptions = {
-  '/': {
-    title: 'Текст-моменты',
-    text: 'ИИ помогает быстро написать текст: от делового письма до поздравления.',
-    points: ['Резюме', 'Письма', 'Поздравления', 'Объявления'],
-  },
+  ...textDescriptions,
   '/photo-page': {
     title: 'Фото-моменты',
     text: 'Сжатие и обработка фотографий прямо на сайте, без установки программ.',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
+import { normalizePath } from '../data/textModes';
 import {
   defaultDescription,
   descriptionFooter,
@@ -29,7 +30,7 @@ function stepSpring(state, key, target, { k, c }, dt) {
 
 export function DescriptionButton({ className = '' }) {
   const { pathname } = useLocation();
-  const description = pageDescriptions[pathname] ?? defaultDescription;
+  const description = pageDescriptions[normalizePath(pathname)] ?? defaultDescription;
   const [phase, setPhase] = useState('closed');
   const [geo, setGeo] = useState(null);
   const [contentHeight, setContentHeight] = useState(0);
