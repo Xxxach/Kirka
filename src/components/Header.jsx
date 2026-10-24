@@ -259,8 +259,34 @@ function TabsCapsule() {
 }
 
 export function Header() {
+  const headerRef = useRef(null);
+
+  useEffect(() => {
+    const root = headerRef.current;
+    if (!root) return undefined;
+    let raf = 0;
+    const onMove = (event) => {
+      if (event.pointerType !== 'mouse') return;
+      const el = event.target.closest?.('.glass-bar, .hdr-glow');
+      if (!el || !root.contains(el)) return;
+      const rect = el.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        el.style.setProperty('--mx', `${x}px`);
+        el.style.setProperty('--my', `${y}px`);
+      });
+    };
+    root.addEventListener('pointermove', onMove);
+    return () => {
+      cancelAnimationFrame(raf);
+      root.removeEventListener('pointermove', onMove);
+    };
+  }, []);
+
   return (
-    <div className="sticky top-0 z-50 flex flex-col gap-1 p-3">
+    <div ref={headerRef} className="sticky top-0 z-50 flex flex-col gap-1 p-3">
       {/* Десктопная версия */}
       <div className="hidden md:flex items-center justify-between gap-15 px-5 py-4 glass-bar rounded-3xl">
         <LogoInfo>
@@ -310,12 +336,10 @@ export function Header() {
         <div className="flex justify-start">
           <DescriptionButton className="pointer-events-auto" />
         </div>
-        <div className="flex flex-col items-center gap-2">
-          <FeedbackButton className="pointer-events-auto" />
-          <ThemeToggle className="pointer-events-auto" />
-        </div>
-        <div className="flex justify-end">
+        <FeedbackButton className="pointer-events-auto" />
+        <div className="flex flex-col items-end gap-2">
           <SectionsPopover tabs={tabs} className="pointer-events-auto" />
+          <ThemeToggle className="pointer-events-auto" />
         </div>
       </div>
     </div>

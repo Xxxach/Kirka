@@ -271,7 +271,7 @@ export function FeedbackButton({ className = '' }) {
             ? undefined
             : { opacity: expanded ? 0 : 1, pointerEvents: 'none' }
         }
-        className={`rounded-full border border-white/70 bg-slate-200/65 px-5 py-1.5 text-xs font-medium text-slate-600 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.2)] backdrop-blur-xl transition-all duration-200 hover:bg-white/70 active:scale-95 select-none ${className}`}
+        className={`hdr-glow rounded-full border border-white/70 bg-slate-200/65 px-5 py-1.5 text-xs font-medium text-slate-600 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.2)] backdrop-blur-xl transition-all duration-200 hover:bg-white/70 active:scale-95 select-none ${className}`}
       >
         <span
           className="transition-opacity duration-150"

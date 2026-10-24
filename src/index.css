@@ -281,6 +281,37 @@ body {
   }
 }
 
+.glass-bar,
+.hdr-glow {
+  position: relative;
+  isolation: isolate;
+}
+.glass-bar::before,
+.hdr-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(
+    var(--glow-size, 130px) circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.6),
+    transparent 70%
+  );
+}
+.glass-bar {
+  --glow-size: 240px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .glass-bar:hover::before,
+  .hdr-glow:hover::before {
+    opacity: 1;
+  }
+}
+
 /* ---------- Отдельная тёмная тема (светлые стили выше не изменяются) ---------- */
 html.dark-theme {
   color-scheme: dark;
@@ -467,3 +498,8 @@ html.dark-theme [class*="border-slate-200/"] { border-color: rgba(150, 150, 150,
 html.dark-theme [class~="hover:border-slate-400"]:hover { border-color: #4a4a4a !important; }
 html.dark-theme [class~="bg-slate-800"] { background-color: #1a1a1a !important; border: 1px solid rgba(150, 150, 150, 0.28); }
 html.dark-theme [class~="hover:bg-slate-700"]:hover { background-color: #262626 !important; }
+html.dark-theme .glass-bar::before,
+html.dark-theme .hdr-glow::before {
+  background: radial-gradient(var(--glow-size, 130px) circle at var(--mx, 50%) var(--my, 50%), rgba(96, 165, 250, 0.26), transparent 70%);
+}
+html.dark-theme [class*="rgba(122,36,50"] { box-shadow: 0 2px 12px -2px rgba(37, 99, 235, 0.5) !important; }
