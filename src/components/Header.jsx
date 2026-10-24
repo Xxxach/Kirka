@@ -118,8 +118,6 @@ function TabsCapsule() {
     const capsule = capsuleRef.current;
     if (!capsule) return;
     const rect = capsule.getBoundingClientRect();
-    capsule.style.setProperty('--mx', `${event.clientX - rect.left}px`);
-    capsule.style.setProperty('--my', `${event.clientY - rect.top}px`);
 
     const press = pressRef.current;
     if (!press || press.id !== event.pointerId) return;
@@ -264,24 +262,74 @@ export function Header() {
   useEffect(() => {
     const root = headerRef.current;
     if (!root) return undefined;
+    const SELECTOR = '.glass-bar, .hdr-glow, .tab-capsule';
+    const REACH = 70;
+    let tiles = [];
+    let dirty = true;
     let raf = 0;
-    const onMove = (event) => {
-      if (event.pointerType !== 'mouse') return;
-      const el = event.target.closest?.('.glass-bar, .hdr-glow');
-      if (!el || !root.contains(el)) return;
-      const rect = el.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        el.style.setProperty('--mx', `${x}px`);
-        el.style.setProperty('--my', `${y}px`);
+    let point = null;
+
+    const collect = () => {
+      tiles = [...root.querySelectorAll(SELECTOR)]
+        .map((el) => ({ el, rect: el.getBoundingClientRect(), lit: false }))
+        .filter((tile) => tile.rect.width > 0 && tile.rect.height > 0);
+      dirty = false;
+    };
+
+    const update = () => {
+      raf = 0;
+      if (!point) return;
+      if (dirty) collect();
+      tiles.forEach((tile) => {
+        const { rect, el } = tile;
+        const dx = Math.max(rect.left - point.x, 0, point.x - rect.right);
+        const dy = Math.max(rect.top - point.y, 0, point.y - rect.bottom);
+        const near = Math.hypot(dx, dy) < REACH;
+        if (near) {
+          el.style.setProperty('--gx', `${point.x - rect.left}px`);
+          el.style.setProperty('--gy', `${point.y - rect.top}px`);
+        }
+        if (near !== tile.lit) {
+          tile.lit = near;
+          el.toggleAttribute('data-lit', near);
+        }
       });
     };
+
+    const onMove = (event) => {
+      if (event.pointerType !== 'mouse') return;
+      point = { x: event.clientX, y: event.clientY };
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+
+    const onLeave = () => {
+      point = null;
+      cancelAnimationFrame(raf);
+      raf = 0;
+      tiles.forEach((tile) => {
+        if (tile.lit) {
+          tile.lit = false;
+          tile.el.removeAttribute('data-lit');
+        }
+      });
+    };
+
+    const markDirty = () => {
+      dirty = true;
+    };
+
     root.addEventListener('pointermove', onMove);
+    root.addEventListener('pointerleave', onLeave);
+    root.addEventListener('pointerenter', markDirty);
+    window.addEventListener('scroll', markDirty, { passive: true });
+    window.addEventListener('resize', markDirty);
     return () => {
       cancelAnimationFrame(raf);
       root.removeEventListener('pointermove', onMove);
+      root.removeEventListener('pointerleave', onLeave);
+      root.removeEventListener('pointerenter', markDirty);
+      window.removeEventListener('scroll', markDirty);
+      window.removeEventListener('resize', markDirty);
     };
   }, []);
 

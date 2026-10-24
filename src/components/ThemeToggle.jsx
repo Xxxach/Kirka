@@ -106,8 +106,6 @@ export function ThemeToggle({ className = '' }) {
     const capsule = capsuleRef.current;
     if (!capsule) return;
     const rect = capsule.getBoundingClientRect();
-    capsule.style.setProperty('--mx', `${event.clientX - rect.left}px`);
-    capsule.style.setProperty('--my', `${event.clientY - rect.top}px`);
 
     const press = pressRef.current;
     if (!press || press.id !== event.pointerId) return;
