@@ -91,6 +91,18 @@ function App() {
     return () => cancelIdle(id);
   }, []);
 
+  useEffect(() => {
+    const keepPage = (e) => {
+      if (Array.from(e.dataTransfer?.types || []).includes('Files')) e.preventDefault();
+    };
+    window.addEventListener('dragover', keepPage);
+    window.addEventListener('drop', keepPage);
+    return () => {
+      window.removeEventListener('dragover', keepPage);
+      window.removeEventListener('drop', keepPage);
+    };
+  }, []);
+
   if (adBlocked) {
     return (
       <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/90 backdrop-blur-sm px-6">
