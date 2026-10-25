@@ -231,6 +231,7 @@ export function TextPage() {
   const [error, setError] = useState('');
   const [fillState, setFillState] = useState('idle');
   const [refining, setRefining] = useState('');
+  const [quota, setQuota] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
 
   const { pathname } = useLocation();
@@ -345,12 +346,19 @@ export function TextPage() {
       await new Promise((r) => setTimeout(r, 300));
       if (form.result.trim()) setUndoStack((prev) => [...prev.slice(-4), form.result]);
       setForm((prev) => ({ ...prev, result: data.result }));
+      rememberQuota(data);
     } catch (err) {
       setError(friendlyError(err));
       console.error(err);
     } finally {
       setLoading(false);
       setFillState('idle');
+    }
+  };
+
+  const rememberQuota = (data) => {
+    if (typeof data.remaining === 'number' && typeof data.limit === 'number') {
+      setQuota({ tier: data.tier, remaining: data.remaining, limit: data.limit });
     }
   };
 
@@ -383,6 +391,7 @@ export function TextPage() {
       trackGoal('text_refined', { action });
       setUndoStack((prev) => [...prev.slice(-4), form.result]);
       setForm((prev) => ({ ...prev, result: data.result }));
+      rememberQuota(data);
     } catch (err) {
       setError(friendlyError(err));
       console.error(err);
@@ -1349,6 +1358,13 @@ export function TextPage() {
               style={barStyles[fillState]}
             />
           </div>
+          {quota && quota.tier === form.tier?.value && (
+            <p
+              className={`select-none text-[11px] ${quota.remaining <= 5 ? 'text-[#7A2432]' : 'text-slate-400'}`}
+            >
+              Осталось {quota.remaining} из {quota.limit} запросов
+            </p>
+          )}
         </div>
       </div>
 

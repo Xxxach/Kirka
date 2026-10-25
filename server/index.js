@@ -128,6 +128,7 @@ function checkLimit(req, res, next) {
   entry.count += 1;
   usage.set(key, entry);
   req.tier = tier;
+  req.limit = limit;
   req.remaining = limit - entry.count;
   next();
 }
@@ -934,7 +935,7 @@ app.post('/api/refine-text', validateRefineRequest, checkLimit, async (req, res)
       system: SYSTEM_TEXT,
       temperature: 0.4,
     });
-    res.json({ result: cleanText(raw), remaining: req.remaining, tier: req.tier, action: req.body.action });
+    res.json({ result: cleanText(raw), remaining: req.remaining, limit: req.limit, tier: req.tier, action: req.body.action });
   } catch (e) {
     console.error(e.message);
     res.status(500).json({ error: 'AI request failed', message: e.userMessage || 'Не удалось выполнить запрос' });
@@ -1015,7 +1016,7 @@ for (const [route, build] of Object.entries(routeHandlers)) {
         temperature: isCode ? 0.2 : (TEMPERATURE[req.body.mode] ?? 0.7),
       });
       const result = isCode ? stripCodeFence(raw) : cleanText(raw);
-      res.json({ result, remaining: req.remaining, tier: req.tier, mode: req.body.mode });
+      res.json({ result, remaining: req.remaining, limit: req.limit, tier: req.tier, mode: req.body.mode });
     } catch (e) {
       console.error(e.message);
       res.status(500).json({ error: 'AI request failed', message: e.userMessage || 'Не удалось выполнить запрос' });
