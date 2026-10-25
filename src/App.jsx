@@ -31,7 +31,7 @@ const ROUTER_BASENAME = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
 
 // Заголовок вкладки для каждой страницы (в Метрике тоже будут понятные названия).
 const DEFAULT_TITLE =
-  'Kirka (Кирка) — ИИ-тексты, перевод кода, сжатие фото и файлов';
+  'Kirka (Кирка) — ИИ без промптов: тексты, код, фото и файлы';
 const PAGE_TITLES = {
   ...Object.fromEntries(modeOptions.map((mode) => [modePath(mode.value), mode.title])),
   '/': DEFAULT_TITLE,

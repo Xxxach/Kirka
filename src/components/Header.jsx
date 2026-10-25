@@ -343,9 +343,10 @@ export function Header() {
         </LogoInfo>
         <AdSlot height="h-15" />
         <div className="flex flex-col w-80 items-center text-center">
-          <p className="text-l">Абсолютно бесплатный сайт</p>
-          <p className="text-sm text-slate-500">
-            (только реклама и лимит 30-300 в день)
+          <p className="text-base font-semibold leading-tight text-[#7A2432]">ИИ без промптов</p>
+          <p className="text-sm leading-tight">Выбери, нажми, готово</p>
+          <p className="text-xs leading-tight text-slate-500">
+            Бесплатно: только реклама и лимит 30-300 в день
           </p>
         </div>
       </div>
@@ -369,9 +370,10 @@ export function Header() {
             <BetkaMetka />
           </LogoInfo>
           <div className="flex min-w-0 flex-col items-end text-right">
-            <p className="text-sm leading-tight">Абсолютно бесплатный сайт</p>
-            <p className="text-[11px] leading-tight text-slate-500">
-              (только реклама и лимит 30-300 в день)
+            <p className="text-sm font-semibold leading-tight text-[#7A2432]">ИИ без промптов</p>
+            <p className="text-xs leading-tight">Выбери, нажми, готово</p>
+            <p className="text-[10px] leading-tight text-slate-500">
+              Бесплатно · лимит 30-300 в день
             </p>
           </div>
         </div>

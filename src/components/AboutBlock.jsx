@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { Fold, Chevron } from './Fold';
 import { modeByValue } from '../data/textModes';
-import { textAbout } from '../data/textAbout';
+import { textAbout, NO_PROMPT_LEAD } from '../data/textAbout';
 
 function FaqItem({ q, a }) {
   const [open, setOpen] = useState(false);
@@ -55,7 +55,9 @@ export function AboutBlock({ mode }) {
       </h1>
       <Fold open={open}>
         <div id={id} className="about-body">
-          <p className="about-intro">{about.intro}</p>
+          <p className="about-intro">
+            <span className="font-semibold text-slate-700">{NO_PROMPT_LEAD}</span> {about.intro}
+          </p>
           <ul className="about-points">
             {meta.points.map((point) => (
               <li key={point}>{point}</li>

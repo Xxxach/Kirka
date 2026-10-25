@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { modeOptions, modeGroups } from '../src/data/textModes.js';
-import { textAbout } from '../src/data/textAbout.js';
+import { textAbout, NO_PROMPT_LEAD } from '../src/data/textAbout.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
@@ -17,7 +17,7 @@ const staticPages = [
   {
     slug: 'kod-page',
     title: 'Перевод кода между языками — Kirka',
-    description: 'Перевод кода с одного языка программирования на другой с помощью ИИ. Бесплатно и без регистрации.',
+    description: 'ИИ без промптов: перевод кода с одного языка программирования на другой. Выберите языки, нажмите, готово. Бесплатно.',
   },
   {
     slug: 'file-page',
@@ -75,7 +75,7 @@ const bodyHtml = ({ title, description, mode }) => {
     .map((item) => `<h3>${esc(item.q)}</h3><p>${esc(item.a)}</p>`)
     .join('');
   const points = mode.points.map((point) => `<li>${esc(point)}</li>`).join('');
-  return `<h1>${esc(about.h1)}</h1><p>${esc(about.intro)}</p><ul>${points}</ul><h2>Частые вопросы</h2>${faq}${navHtml}`;
+  return `<h1>${esc(about.h1)}</h1><p>${esc(`${NO_PROMPT_LEAD} ${about.intro}`)}</p><ul>${points}</ul><h2>Частые вопросы</h2>${faq}${navHtml}`;
 };
 
 const faqJsonLd = (mode) => {
