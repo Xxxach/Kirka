@@ -5,6 +5,7 @@ import { ThemedSelect as Select } from '../components/ThemedSelect';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ModePicker } from '../components/ModePicker';
+import { AboutBlock } from '../components/AboutBlock';
 import { modeForPath, modePath } from '../data/textModes';
 
 // Значение этих полей уходит на сервер как value (там по нему подбирается инструкция).
@@ -1311,6 +1312,8 @@ export function TextPage() {
           placeholder="Здесь появится сгенерированный текст"
         />
       </div>
+
+      <AboutBlock key={mode} mode={mode} />
     </div>
   );
 }

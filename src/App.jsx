@@ -3,7 +3,6 @@ import {
   BrowserRouter,
   Routes,
   Route,
-  Link,
   useLocation,
 } from 'react-router-dom';
 import { TextPage } from './pages/TextPage';
@@ -12,6 +11,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { Header } from './components/Header';
 import { useAdBlockDetector } from './hooks/useAdBlockDetector';
 import { CookieNotice } from './components/CookieNotice';
+import { SiteFooter } from './components/SiteFooter';
 import { trackHit } from './analytics';
 import { modeForPath, modeOptions, modePath, isTextPathname, normalizePath } from './data/textModes';
 
@@ -126,14 +126,7 @@ function App() {
           <Route path="*" element={<TextRoute />} />
         </Routes>
       </Suspense>
-      <footer className="text-center py-4">
-        <Link
-          to="/privacy"
-          className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-        >
-          Политика конфиденциальности
-        </Link>
-      </footer>
+      <SiteFooter />
       <CookieNotice />
     </BrowserRouter>
   );
