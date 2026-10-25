@@ -3,7 +3,7 @@ import Select, { components } from 'react-select';
 
 const accentTheme = (theme) => ({
   ...theme,
-  borderRadius: 8,
+  borderRadius: 16,
   colors: {
     ...theme.colors,
     primary: '#7A2432',
@@ -48,8 +48,11 @@ const defaultStyles = {
     ...base,
     animation: 'kirka-select-fade 220ms ease-out',
   }),
+  menuList: (base) => ({ ...base, padding: 6 }),
+  valueContainer: (base) => ({ ...base, padding: '2px 14px' }),
   option: (base) => ({
     ...base,
+    borderRadius: 10,
     transition: 'background-color 160ms ease, color 160ms ease',
   }),
   // Заголовки групп (например, в списке «Что генерируем»).

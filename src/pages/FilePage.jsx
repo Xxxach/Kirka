@@ -290,7 +290,7 @@ export function FilePage() {
                 maxLength={60}
                 onChange={(e) => setZipName(e.target.value)}
                 placeholder="Имя архива (необязательно)"
-                className="p-3 border border-slate-200 outline-none focus:border-[#7A2432]/50 focus:ring-1 focus:ring-[#7A2432]/30 bg-white rounded-xl w-full text-sm placeholder:text-slate-400"
+                className="px-4 py-3 border border-slate-200 outline-none focus:border-[#7A2432]/50 focus:ring-1 focus:ring-[#7A2432]/30 bg-white rounded-2xl w-full text-sm placeholder:text-slate-400"
               />
               <p className="text-xs text-slate-500">
                 Файлы и папки упаковываются прямо в браузере и никуда не

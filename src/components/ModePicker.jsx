@@ -5,7 +5,7 @@ import { modeByValue, modeGroups } from '../data/textModes';
 const PANEL_WIDTH = 960;
 const EDGE = 12;
 const PANEL_RADIUS = 28;
-const START_RADIUS = 8;
+const START_RADIUS = 16;
 
 const SPRING_OPEN_X = { k: 300, c: 22 };
 const SPRING_OPEN_Y = { k: 185, c: 18 };
@@ -473,7 +473,7 @@ export function ModePicker({ value, onChange }) {
             ? undefined
             : { opacity: expanded ? 0 : 1, pointerEvents: 'none' }
         }
-        className="w-full h-[38px] px-3 flex items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white shadow-sm text-left text-sm text-slate-800 transition-opacity duration-150 hover:border-slate-400"
+        className="w-full h-[38px] px-4 flex items-center justify-between gap-2 rounded-2xl border border-slate-300 bg-white shadow-sm text-left text-sm text-slate-800 transition-opacity duration-150 hover:border-slate-400"
       >
         <span className="truncate">{current?.label}</span>
         <svg

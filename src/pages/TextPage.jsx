@@ -409,9 +409,9 @@ export function TextPage() {
 
   const labelClass = 'text-xs text-slate-500 font-semibold';
   const inputClass =
-    'w-full min-w-0 px-3 h-9 border border-slate-300 rounded-lg shadow-sm bg-white';
+    'w-full min-w-0 px-4 h-9 border border-slate-300 rounded-2xl shadow-sm bg-white';
   const textareaClass =
-    'w-full min-w-0 p-3 h-28 border border-slate-300 rounded-lg shadow-sm bg-white resize-none';
+    'w-full min-w-0 px-4 py-3 h-28 border border-slate-300 rounded-2xl shadow-sm bg-white resize-none';
 
   return (
     <div className="flex flex-col px-5 py-1 gap-6">
