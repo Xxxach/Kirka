@@ -7,6 +7,7 @@ import compression from 'compression';
 const {
   CF_ACCOUNT_ID,
   CF_API_TOKEN,
+  CF_D1_DATABASE_ID,
   CF_MODEL = '@cf/meta/llama-3.1-8b-instruct',
   DEEPSEEK_BASE_URL,
   DEEPSEEK_API_KEY,
@@ -104,29 +105,86 @@ const TIERS = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const usage = new Map(); // ключ: `${ip}:${tier}`
+const usage = new Map(); // запасной счётчик в памяти: ключ `${ip}:${tier}`
 
-function checkLimit(req, res, next) {
-  const tier = TIERS[req.body.tier] ? req.body.tier : 'basic';
-  const key = `${req.ip}:${tier}`;
-  const now = Date.now();
+const D1_URL = CF_D1_DATABASE_ID
+  ? `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${CF_D1_DATABASE_ID}/query`
+  : null;
+
+const D1_UPSERT = `INSERT INTO usage (key, count, reset_at) VALUES (?1, 1, ?2)
+ON CONFLICT(key) DO UPDATE SET
+  count = CASE WHEN usage.reset_at <= ?3 THEN 1 ELSE usage.count + 1 END,
+  reset_at = CASE WHEN usage.reset_at <= ?3 THEN ?2 ELSE usage.reset_at END
+RETURNING count, reset_at`;
+
+async function d1(sql, params = []) {
+  const res = await fetch(D1_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${CF_API_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql, params }),
+    signal: AbortSignal.timeout(3000),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(`D1: ${data.errors?.[0]?.message || res.status}`);
+  }
+  return data.result?.[0]?.results ?? [];
+}
+
+let d1Ready = null;
+function ensureD1() {
+  d1Ready ??= d1(
+    'CREATE TABLE IF NOT EXISTS usage (key TEXT PRIMARY KEY, count INTEGER NOT NULL, reset_at INTEGER NOT NULL)',
+  ).catch((e) => {
+    d1Ready = null;
+    throw e;
+  });
+  return d1Ready;
+}
+
+async function bumpShared(key, now) {
+  await ensureD1();
+  const rows = await d1(D1_UPSERT, [key, now + DAY_MS, now]);
+  if (Math.random() < 0.005) {
+    d1('DELETE FROM usage WHERE reset_at < ?1', [now]).catch((e) => console.error(e.message));
+  }
+  return { count: rows[0].count, resetAt: rows[0].reset_at };
+}
+
+function bumpLocal(key, now) {
   let entry = usage.get(key);
-
   if (!entry || now > entry.resetAt) {
     entry = { count: 0, resetAt: now + DAY_MS };
   }
+  entry.count += 1;
+  usage.set(key, entry);
+  return entry;
+}
 
+async function checkLimit(req, res, next) {
+  const tier = TIERS[req.body.tier] ? req.body.tier : 'basic';
+  const key = `${req.ip}:${tier}`;
+  const now = Date.now();
   const limit = TIERS[tier].limit;
-  if (entry.count >= limit) {
-    const minutesLeft = Math.ceil((entry.resetAt - now) / 60000);
+
+  let entry = null;
+  if (D1_URL) {
+    try {
+      entry = await bumpShared(key, now);
+    } catch (e) {
+      console.error(e.message);
+    }
+  }
+  entry ??= bumpLocal(key, now);
+
+  if (entry.count > limit) {
+    const minutesLeft = Math.max(1, Math.ceil((entry.resetAt - now) / 60000));
     return res.status(429).json({
       error: 'limit_reached',
       message: `Лимит для этой модели исчерпан (${limit}/день). Попробуй через ${minutesLeft} мин.`,
     });
   }
 
-  entry.count += 1;
-  usage.set(key, entry);
   req.tier = tier;
   req.limit = limit;
   req.remaining = limit - entry.count;
@@ -144,7 +202,9 @@ app.use(express.json({ limit: '20kb' }));
 
 // Лёгкая точка для "будильника" (UptimeRobot / cron-job.org),
 // чтобы бесплатный Render не засыпал через 15 минут простоя.
-app.get('/health', (req, res) => res.status(200).json({ ok: true, sha: process.env.GIT_SHA || 'dev' }));
+app.get('/health', (req, res) =>
+  res.status(200).json({ ok: true, sha: process.env.GIT_SHA || 'dev', limits: D1_URL ? 'shared' : 'memory' }),
+);
 
 // ---------- Обратная связь ----------
 

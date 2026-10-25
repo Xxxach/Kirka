@@ -1,7 +1,33 @@
-export function FileDropzone({ onChange, accept, fileName, hint, previewUrl }) {
+export function FileDropzone({
+  onChange,
+  accept,
+  fileName,
+  hint,
+  previewUrl,
+  multiple = false,
+  title = 'Нажми, чтобы выбрать файл',
+  onDropFiles,
+}) {
+  const dropProps = onDropFiles
+    ? {
+        onDragOver: (e) => e.preventDefault(),
+        onDrop: (e) => {
+          e.preventDefault();
+          onDropFiles(Array.from(e.dataTransfer.files));
+        },
+      }
+    : {};
   return (
-    <label className="relative flex flex-col items-center justify-center gap-2 border border-dashed border-slate-300 hover:border-[#7A2432]/50 bg-white h-60 rounded-2xl shadow-sm w-full cursor-pointer transition-colors text-center px-4 overflow-hidden">
-      <input type="file" accept={accept} onChange={onChange} className="hidden" />
+    <label
+      {...dropProps}
+      className="relative flex flex-col items-center justify-center gap-2 border border-dashed border-slate-300 hover:border-[#7A2432]/50 bg-white h-60 rounded-2xl shadow-sm w-full cursor-pointer transition-colors text-center px-4 overflow-hidden">
+      <input
+        type="file"
+        accept={accept}
+        multiple={multiple}
+        onChange={onChange}
+        className="hidden"
+      />
       {previewUrl ? (
         <>
           <img
@@ -16,7 +42,7 @@ export function FileDropzone({ onChange, accept, fileName, hint, previewUrl }) {
       ) : (
         <>
           <span className="text-sm font-medium text-slate-600 break-all">
-            Нажми, чтобы выбрать файл
+            {title}
           </span>
           {hint && <span className="text-xs text-slate-400">{hint}</span>}
         </>
