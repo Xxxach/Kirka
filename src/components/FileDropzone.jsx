@@ -13,7 +13,7 @@ export function FileDropzone({
         onDragOver: (e) => e.preventDefault(),
         onDrop: (e) => {
           e.preventDefault();
-          onDropFiles(Array.from(e.dataTransfer.files));
+          onDropFiles(e.dataTransfer);
         },
       }
     : {};

@@ -9,9 +9,13 @@ import {
   ZIP_MAX_FILES,
   ZIP_MAX_BYTES,
   formatSize,
+  groupItems,
+  itemKey,
+  removeGroup,
   safeArchiveName,
   zipFiles,
 } from '../utils/zipFiles';
+import { collectDropped } from '../utils/dropEntries';
 
 const categoryOptions = [
   { value: 'image', label: 'Изображение' },
@@ -61,7 +65,11 @@ export function FilePage() {
   const isImage = category.value === 'image';
   const isDoc = category.value === 'document';
   const isArchive = category.value === 'archive';
-  const filesTotal = files.reduce((sum, item) => sum + item.size, 0);
+  const filesTotal = files.reduce((sum, item) => sum + item.file.size, 0);
+  const groups = groupItems(files);
+  const [canPickFolder] = useState(
+    () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(pointer: fine)').matches),
+  );
 
   const getResultFileName = () => {
     if (!file) return '';
@@ -125,23 +133,16 @@ export function FilePage() {
     setZipInfo(null);
   };
 
-  const addFiles = (incoming) => {
-    const fresh = incoming.filter(
-      (item) =>
-        !files.some(
-          (old) =>
-            old.name === item.name &&
-            old.size === item.size &&
-            old.lastModified === item.lastModified,
-        ),
-    );
-    if (!fresh.length) return;
+  const addItems = (incoming, truncated = false) => {
+    const known = new Set(files.map(itemKey));
+    const fresh = incoming.filter((item) => !known.has(itemKey(item)));
+    if (!fresh.length && !truncated) return;
     const next = [...files, ...fresh];
-    if (next.length > ZIP_MAX_FILES) {
+    if (truncated || next.length > ZIP_MAX_FILES) {
       setError(`Можно добавить до ${ZIP_MAX_FILES} файлов.`);
       return;
     }
-    if (next.reduce((sum, item) => sum + item.size, 0) > ZIP_MAX_BYTES) {
+    if (next.reduce((sum, item) => sum + item.file.size, 0) > ZIP_MAX_BYTES) {
       setError(`Общий размер не больше ${formatSize(ZIP_MAX_BYTES)}.`);
       return;
     }
@@ -153,12 +154,28 @@ export function FilePage() {
   const handleArchiveInput = (e) => {
     const picked = Array.from(e.target.files);
     e.target.value = '';
-    addFiles(picked);
+    addItems(picked.map((file) => ({ file, path: file.name })));
   };
 
-  const removeFile = (index) => {
+  const handleFolderInput = (e) => {
+    const picked = Array.from(e.target.files);
+    e.target.value = '';
+    addItems(picked.map((file) => ({ file, path: file.webkitRelativePath || file.name })));
+  };
+
+  const handleArchiveDrop = async (dataTransfer) => {
+    try {
+      const { items, truncated } = await collectDropped(dataTransfer, ZIP_MAX_FILES);
+      addItems(items, truncated);
+    } catch (err) {
+      setError(friendlyError(err));
+      console.error(err);
+    }
+  };
+
+  const removeItem = (group) => {
     clearResult();
-    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setFiles((prev) => removeGroup(prev, group));
   };
 
   const handlePack = async () => {
@@ -276,8 +293,8 @@ export function FilePage() {
                 className="p-3 border border-slate-200 outline-none focus:border-[#7A2432]/50 focus:ring-1 focus:ring-[#7A2432]/30 bg-white rounded-xl w-full text-sm placeholder:text-slate-400"
               />
               <p className="text-xs text-slate-500">
-                Файлы упаковываются прямо в браузере и никуда не отправляются.
-                Лимит: до {ZIP_MAX_FILES} файлов и {formatSize(ZIP_MAX_BYTES)} в сумме.
+                Файлы и папки упаковываются прямо в браузере и никуда не
+                отправляются. Лимит: до {ZIP_MAX_FILES} файлов и {formatSize(ZIP_MAX_BYTES)} в сумме.
               </p>
             </div>
           </Collapse>
@@ -311,17 +328,31 @@ export function FilePage() {
       <div className="col-span-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           {isArchive ? (
-            <FileDropzone
-              multiple
-              onChange={handleArchiveInput}
-              onDropFiles={addFiles}
-              title={files.length ? 'Нажми, чтобы добавить ещё' : 'Нажми, чтобы выбрать файлы'}
-              hint={
-                files.length
-                  ? `Добавлено: ${files.length} · ${formatSize(filesTotal)}`
-                  : 'Любые файлы, можно перетащить сразу несколько'
-              }
-            />
+            <>
+              <FileDropzone
+                multiple
+                onChange={handleArchiveInput}
+                onDropFiles={handleArchiveDrop}
+                title={files.length ? 'Нажми, чтобы добавить ещё' : 'Нажми, чтобы выбрать файлы'}
+                hint={
+                  files.length
+                    ? `Добавлено: ${files.length} · ${formatSize(filesTotal)}`
+                    : 'Файлы и папки: можно перетащить сразу несколько'
+                }
+              />
+              {canPickFolder && (
+                <label className="mt-2 inline-block cursor-pointer rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-[#7A2432]/50 hover:text-[#7A2432]">
+                  Добавить папку
+                  <input
+                    type="file"
+                    webkitdirectory=""
+                    multiple
+                    onChange={handleFolderInput}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </>
           ) : (
             <FileDropzone
               accept={isImage ? 'image/*' : '.pdf,.docx,.doc'}
@@ -341,17 +372,27 @@ export function FilePage() {
             {isArchive ? (
               files.length ? (
                 <ul className="h-60 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  {files.map((item, index) => (
+                  {groups.map((group) => (
                     <li
-                      key={`${item.name}-${item.size}-${item.lastModified}`}
+                      key={group.key}
                       className="flex items-center gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-0"
                     >
-                      <span className="min-w-0 flex-1 truncate text-slate-700">{item.name}</span>
-                      <span className="shrink-0 text-xs text-slate-400">{formatSize(item.size)}</span>
+                      {group.folder && (
+                        <svg viewBox="0 0 20 20" width="15" height="15" className="shrink-0 text-[#7A2432]" fill="currentColor" aria-hidden="true">
+                          <path d="M2 5.5A1.5 1.5 0 013.5 4h4l1.5 2h7.5A1.5 1.5 0 0118 7.5v7a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 012 14.5v-9z" />
+                        </svg>
+                      )}
+                      <span className="min-w-0 flex-1 truncate text-slate-700">
+                        {group.name}
+                        {group.folder && (
+                          <span className="text-slate-400"> · {group.count} файл.</span>
+                        )}
+                      </span>
+                      <span className="shrink-0 text-xs text-slate-400">{formatSize(group.size)}</span>
                       <button
                         type="button"
-                        onClick={() => removeFile(index)}
-                        aria-label={`Убрать ${item.name}`}
+                        onClick={() => removeItem(group)}
+                        aria-label={`Убрать ${group.name}`}
                         className="shrink-0 px-1 text-lg leading-none text-slate-400 transition-colors hover:text-[#7A2432]"
                       >
                         ×
