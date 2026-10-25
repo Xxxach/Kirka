@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ModePicker } from '../components/ModePicker';
 import { AboutBlock } from '../components/AboutBlock';
+import { RefineBar } from '../components/RefineBar';
 import { modeForPath, modePath } from '../data/textModes';
 
 // Значение этих полей уходит на сервер как value (там по нему подбирается инструкция).
@@ -87,6 +88,8 @@ const REQUIRED = {
   essay: ['itemName', 'Укажи тему сочинения'],
   service: ['itemName', 'Укажи услугу'],
 };
+
+const REFINE_MAX = 7000;
 
 const FIELD_LABEL = 'text-xs text-slate-500 font-semibold';
 
@@ -227,6 +230,8 @@ export function TextPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fillState, setFillState] = useState('idle');
+  const [refining, setRefining] = useState('');
+  const [undoStack, setUndoStack] = useState([]);
 
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -338,6 +343,7 @@ export function TextPage() {
       trackGoal('text_generated', { mode });
       setFillState('done');
       await new Promise((r) => setTimeout(r, 300));
+      if (form.result.trim()) setUndoStack((prev) => [...prev.slice(-4), form.result]);
       setForm((prev) => ({ ...prev, result: data.result }));
     } catch (err) {
       setError(friendlyError(err));
@@ -346,6 +352,50 @@ export function TextPage() {
       setLoading(false);
       setFillState('idle');
     }
+  };
+
+  const handleRefine = async (action) => {
+    const text = form.result.trim();
+    if (!text || refining) return;
+    if (text.length > REFINE_MAX) {
+      setError(`Текст слишком длинный для доработки (до ${REFINE_MAX} символов).`);
+      return;
+    }
+    setRefining(action);
+    setError('');
+    try {
+      const apiUrl = await getApiBase('text');
+      const res = await fetch(`${apiUrl}/api/refine-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, text, tier: form.tier?.value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(
+          data.message ||
+            (res.status === 404
+              ? 'Сервер обновляется и пока не умеет дорабатывать текст. Попробуй чуть позже.'
+              : 'Не удалось выполнить запрос'),
+        );
+      if (data.action !== action)
+        throw new Error('Сервер обновляется и пока не умеет дорабатывать текст. Попробуй чуть позже.');
+      trackGoal('text_refined', { action });
+      setUndoStack((prev) => [...prev.slice(-4), form.result]);
+      setForm((prev) => ({ ...prev, result: data.result }));
+    } catch (err) {
+      setError(friendlyError(err));
+      console.error(err);
+    } finally {
+      setRefining('');
+    }
+  };
+
+  const handleUndo = () => {
+    const last = undoStack[undoStack.length - 1];
+    if (last === undefined) return;
+    setUndoStack((prev) => prev.slice(0, -1));
+    setForm((prev) => ({ ...prev, result: last }));
   };
 
   const labelClass = 'text-xs text-slate-500 font-semibold';
@@ -1312,6 +1362,19 @@ export function TextPage() {
           placeholder="Здесь появится сгенерированный текст"
         />
       </div>
+
+      {(form.result.trim() || undoStack.length > 0) && (
+        <RefineBar
+          mode={mode}
+          hasText={Boolean(form.result.trim())}
+          busy={loading || Boolean(refining)}
+          refining={refining}
+          canUndo={undoStack.length > 0}
+          onRefine={handleRefine}
+          onRegenerate={handleGenerate}
+          onUndo={handleUndo}
+        />
+      )}
 
       <AboutBlock key={mode} mode={mode} />
     </div>
