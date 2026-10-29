@@ -8,6 +8,10 @@ const PAD = 56;
 const FONT_SIZE = 36;
 const LINE_HEIGHT = 54;
 const MAX_LINES = 24;
+const HEADER_H = 128;
+const TOP_GAP = 56;
+const BOTTOM_GAP = 44;
+const FOOT_H = 140;
 const BRAND = '#7A2432';
 const SERIF = 'Georgia, "DejaVu Serif", "Times New Roman", serif';
 
@@ -86,65 +90,109 @@ async function renderCard(text, label) {
     lines[MAX_LINES - 1] = `${last}…`;
   }
 
-  const chipH = 52;
-  const footerH = 72;
-  const cardH = PAD + chipH + 44 + lines.length * LINE_HEIGHT + 44 + footerH + PAD / 2;
+  const cardW = CARD_W - MARGIN * 2;
+  const cardH = HEADER_H + TOP_GAP + lines.length * LINE_HEIGHT + BOTTOM_GAP + FOOT_H;
   const height = Math.round(cardH + MARGIN * 2);
+  const cardTop = MARGIN;
+  const cardRight = CARD_W - MARGIN;
+  const left = MARGIN + PAD;
 
   const canvas = document.createElement('canvas');
   canvas.width = CARD_W;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
 
-  const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, '#eef1f6');
-  gradient.addColorStop(1, '#f8f9fc');
-  ctx.fillStyle = gradient;
+  const background = ctx.createLinearGradient(0, 0, 0, height);
+  background.addColorStop(0, '#eef1f6');
+  background.addColorStop(1, '#f8f9fc');
+  ctx.fillStyle = background;
   ctx.fillRect(0, 0, CARD_W, height);
 
   ctx.save();
-  ctx.shadowColor = 'rgba(15, 23, 42, 0.14)';
+  ctx.shadowColor = 'rgba(15, 23, 42, 0.16)';
   ctx.shadowBlur = 48;
   ctx.shadowOffsetY = 14;
   ctx.fillStyle = '#ffffff';
-  roundedRect(ctx, MARGIN, MARGIN, CARD_W - MARGIN * 2, cardH, 44);
+  roundedRect(ctx, MARGIN, cardTop, cardW, cardH, 44);
   ctx.fill();
   ctx.restore();
 
-  const left = MARGIN + PAD;
-  let y = MARGIN + PAD;
+  ctx.save();
+  roundedRect(ctx, MARGIN, cardTop, cardW, cardH, 44);
+  ctx.clip();
+  const header = ctx.createLinearGradient(MARGIN, 0, cardRight, 0);
+  header.addColorStop(0, BRAND);
+  header.addColorStop(1, '#5c1c28');
+  ctx.fillStyle = header;
+  ctx.fillRect(MARGIN, cardTop, cardW, HEADER_H);
+  ctx.font = `700 680px ${SERIF}`;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(122, 36, 50, 0.05)';
+  ctx.fillText('K', cardRight + 30, cardTop + cardH + 120);
+  ctx.restore();
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `600 72px ${SERIF}`;
+  ctx.fillStyle = '#ffffff';
+  const markBase = cardTop + 86;
+  ctx.fillText('Kirka', left, markBase);
+  const markW = ctx.measureText('Kirka').width;
+  ctx.fillRect(left + 2, markBase + 14, markW * 0.45, 5);
 
   ctx.font = `600 26px ${family}`;
-  const chipW = Math.min(ctx.measureText(label).width + 48, textWidth);
-  ctx.fillStyle = 'rgba(122, 36, 50, 0.1)';
-  roundedRect(ctx, left, y, chipW, chipH, chipH / 2);
+  const chipH = 52;
+  const chipMax = textWidth - markW - 32;
+  const chipW = Math.min(ctx.measureText(label).width + 48, chipMax);
+  const chipX = cardRight - PAD - chipW;
+  const chipY = cardTop + (HEADER_H - chipH) / 2;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+  roundedRect(ctx, chipX, chipY, chipW, chipH, chipH / 2);
   ctx.fill();
-  ctx.fillStyle = BRAND;
+  ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'middle';
-  ctx.fillText(label, left + 24, y + chipH / 2 + 1, chipW - 48);
+  ctx.fillText(label, chipX + 24, chipY + chipH / 2 + 1, chipW - 48);
 
-  y += chipH + 44;
+  const bodyTop = cardTop + HEADER_H + TOP_GAP;
   ctx.font = `400 ${FONT_SIZE}px ${family}`;
   ctx.fillStyle = '#1e293b';
   ctx.textBaseline = 'alphabetic';
   lines.forEach((line, index) => {
-    ctx.fillText(line, left, y + FONT_SIZE + index * LINE_HEIGHT - 8);
+    ctx.fillText(line, left, bodyTop + FONT_SIZE + index * LINE_HEIGHT - 8);
   });
 
-  y += lines.length * LINE_HEIGHT + 44;
+  const dividerY = bodyTop + lines.length * LINE_HEIGHT + BOTTOM_GAP;
   ctx.fillStyle = '#e2e8f0';
-  ctx.fillRect(left, y, textWidth, 2);
+  ctx.fillRect(left, dividerY, textWidth, 2);
 
-  const baseline = y + 52;
-  ctx.textBaseline = 'alphabetic';
-  ctx.font = `700 40px ${SERIF}`;
+  const footY = dividerY + 32;
+  const iconSize = 64;
   ctx.fillStyle = BRAND;
-  ctx.fillText('Kirka', left, baseline);
-  ctx.font = `400 28px ${family}`;
-  ctx.fillStyle = '#64748b';
-  ctx.textAlign = 'right';
-  ctx.fillText('kirka-ai.ru', left + textWidth, baseline);
+  roundedRect(ctx, left, footY, iconSize, iconSize, 15);
+  ctx.fill();
+  ctx.font = `700 44px ${SERIF}`;
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.fillText('K', left + iconSize / 2, footY + 47);
+
   ctx.textAlign = 'left';
+  ctx.font = `700 30px ${family}`;
+  ctx.fillStyle = '#1e293b';
+  ctx.fillText('ИИ без промптов', left + iconSize + 20, footY + 28);
+  ctx.font = `400 24px ${family}`;
+  ctx.fillStyle = '#64748b';
+  ctx.fillText('Бесплатно, без регистрации', left + iconSize + 20, footY + 58);
+
+  ctx.font = `600 30px ${family}`;
+  const pillW = ctx.measureText('kirka-ai.ru').width + 56;
+  const pillX = left + textWidth - pillW;
+  ctx.fillStyle = BRAND;
+  roundedRect(ctx, pillX, footY, pillW, iconSize, iconSize / 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('kirka-ai.ru', pillX + 28, footY + iconSize / 2 + 1);
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
   if (!blob) throw new Error('canvas');
@@ -222,6 +270,7 @@ export function ShareDialog({ open, onClose, text, label, path }) {
   const ready = preview && preview.key === key ? preview : null;
   const url = `${window.location.origin}${path}?utm_source=share`;
   const canShare = typeof navigator.share === 'function';
+  const canCopyImage = typeof window.ClipboardItem === 'function' && Boolean(navigator.clipboard?.write);
 
   const flash = (message) => {
     setNote(message);
@@ -254,6 +303,17 @@ export function ShareDialog({ open, onClose, text, label, path }) {
     link.click();
     link.remove();
     trackGoal('result_shared', { method: 'download' });
+  };
+
+  const copyImage = async () => {
+    if (!ready) return;
+    try {
+      await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': ready.blob })]);
+      flash('Картинка скопирована, вставьте её в чат');
+      trackGoal('result_shared', { method: 'copy_image' });
+    } catch {
+      flash('Не удалось скопировать картинку, попробуйте скачать');
+    }
   };
 
   const copy = async (value, message, method) => {
@@ -311,21 +371,26 @@ export function ShareDialog({ open, onClose, text, label, path }) {
           </p>
         )}
 
-        {canShare && (
-          <button
-            type="button"
-            className="gel w-full rounded-full bg-[#7A2432] px-6 py-3 text-white shadow-sm transition-colors hover:bg-[#5c1c28] disabled:opacity-50"
-            onClick={share}
-            disabled={!ready}
-          >
-            Отправить
-          </button>
-        )}
+        <button
+          type="button"
+          className="gel w-full rounded-full bg-[#7A2432] px-6 py-3 text-white shadow-sm transition-colors hover:bg-[#5c1c28] disabled:opacity-50"
+          onClick={canShare ? share : download}
+          disabled={!ready}
+        >
+          {canShare ? 'Поделиться карточкой' : 'Скачать картинку'}
+        </button>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <button type="button" className={BUTTON} onClick={download} disabled={!ready}>
-            Скачать
-          </button>
+        <div className="grid grid-cols-2 gap-2">
+          {canShare && (
+            <button type="button" className={BUTTON} onClick={download} disabled={!ready}>
+              Скачать картинку
+            </button>
+          )}
+          {canCopyImage && (
+            <button type="button" className={BUTTON} onClick={copyImage} disabled={!ready}>
+              Копировать картинку
+            </button>
+          )}
           <button
             type="button"
             className={BUTTON}
