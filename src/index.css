@@ -788,3 +788,35 @@ html.dark-theme .site-footer-bottom {
     transition: none;
   }
 }
+
+.page-shell {
+  width: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+.page-shell-tight {
+  padding-inline: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .page-shell,
+  .page-shell-tight {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-shell,
+  .page-shell-tight {
+    padding-inline: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page-shell,
+  .page-shell-tight {
+    padding-inline: 3rem;
+  }
+}

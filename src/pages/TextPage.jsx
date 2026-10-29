@@ -96,7 +96,7 @@ const FIELD_LABEL = 'text-xs text-slate-500 font-semibold';
 function Field({ label, wide = false, children }) {
   return (
     <div
-      className={`flex flex-col gap-1 p-3 ${wide ? 'col-span-1 sm:col-span-2' : ''}`}
+      className={`flex flex-col gap-1 py-3 ${wide ? 'col-span-1 sm:col-span-2' : ''}`}
     >
       <p className={FIELD_LABEL}>{label}</p>
       {children}
@@ -414,13 +414,13 @@ export function TextPage() {
     'w-full min-w-0 px-4 py-3 h-28 border border-slate-300 rounded-2xl shadow-sm bg-white resize-none';
 
   return (
-    <div className="flex flex-col px-5 py-1 gap-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="flex flex-col gap-1 p-3">
+    <div className="page-shell flex flex-col py-1 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-9 gap-y-3">
+        <div className="flex flex-col gap-1 py-3">
           <p className={labelClass}>Что генерируем</p>
           <ModePicker value={mode} onChange={(next) => navigate(modePath(next))} />
         </div>
-        <div className="flex flex-col gap-1 p-3">
+        <div className="flex flex-col gap-1 py-3">
           <p className={labelClass}>Модель</p>
           <Select
             options={tierOptions}
@@ -434,13 +434,13 @@ export function TextPage() {
             </p>
           )}
         </div>
-        <div className="col-span-1 sm:col-span-2 m-3 p-3 min-h-24">
+        <div className="col-span-1 sm:col-span-2 my-3 py-3 min-h-24">
           <AdSlot />
         </div>
 
         {(mode === 'resume' || mode === 'letter') && (
           <>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Сфера / Профессия</p>
               <Select
                 options={profOptions}
@@ -448,7 +448,7 @@ export function TextPage() {
                 onChange={handSelectChange('prof')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Опыт (в годах)</p>
               <input
                 className={inputClass}
@@ -458,7 +458,7 @@ export function TextPage() {
                 placeholder="Например, 3"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>В чём измерять объём</p>
               <Select
                 options={unitOptions}
@@ -466,7 +466,7 @@ export function TextPage() {
                 onChange={handSelectChange('unit')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Диапазон объёма</p>
               <div className="flex gap-2">
                 <input
@@ -485,7 +485,7 @@ export function TextPage() {
                 />
               </div>
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Кол-во абзацев</p>
               <input
                 className={inputClass}
@@ -495,7 +495,7 @@ export function TextPage() {
                 placeholder="Обычно 3"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3 col-span-1 sm:col-span-2">
+            <div className="flex flex-col gap-1 py-3 col-span-1 sm:col-span-2">
               <p className={labelClass}>Ключевые слова, через запятую</p>
               <input
                 className={inputClass}
@@ -505,7 +505,7 @@ export function TextPage() {
                 placeholder="Например: коммуникабельность, ответственность"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3 col-span-1 sm:col-span-2">
+            <div className="flex flex-col gap-1 py-3 col-span-1 sm:col-span-2">
               <p className={labelClass}>Точные фразы, через запятую</p>
               <input
                 className={inputClass}
@@ -515,7 +515,7 @@ export function TextPage() {
                 placeholder="Фразы, которые должны попасть в текст дословно"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3 col-span-1 sm:col-span-2">
+            <div className="flex flex-col gap-1 py-3 col-span-1 sm:col-span-2">
               <p className={labelClass}>Подробности / пожелания</p>
               <input
                 className={inputClass}
@@ -530,7 +530,7 @@ export function TextPage() {
 
         {(mode === 'greeting' || mode === 'toast') && (
           <>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Повод</p>
               <Select
                 options={occasionOptions}
@@ -538,7 +538,7 @@ export function TextPage() {
                 onChange={handSelectChange('occasion')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Кому (имя)</p>
               <input
                 className={inputClass}
@@ -548,7 +548,7 @@ export function TextPage() {
                 placeholder="Например: Анна"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Тон</p>
               <Select
                 options={toneOptions}
@@ -556,7 +556,7 @@ export function TextPage() {
                 onChange={handSelectChange('tone')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Длина</p>
               <Select
                 options={lengthOptions}
@@ -564,7 +564,7 @@ export function TextPage() {
                 onChange={handSelectChange('length')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3 col-span-1 sm:col-span-2">
+            <div className="flex flex-col gap-1 py-3 col-span-1 sm:col-span-2">
               <p className={labelClass}>Что упомянуть (необязательно)</p>
               <input
                 className={inputClass}
@@ -579,7 +579,7 @@ export function TextPage() {
 
         {mode === 'ad' && (
           <>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Что продаём</p>
               <input
                 className={inputClass}
@@ -589,7 +589,7 @@ export function TextPage() {
                 placeholder="Например: iPhone 13"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Цена</p>
               <input
                 className={inputClass}
@@ -599,7 +599,7 @@ export function TextPage() {
                 placeholder="Например: 35000"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Состояние</p>
               <Select
                 options={conditionOptions}
@@ -607,7 +607,7 @@ export function TextPage() {
                 onChange={handSelectChange('condition')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Длина</p>
               <Select
                 options={lengthOptions}
@@ -615,7 +615,7 @@ export function TextPage() {
                 onChange={handSelectChange('length')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3 col-span-1 sm:col-span-2">
+            <div className="flex flex-col gap-1 py-3 col-span-1 sm:col-span-2">
               <p className={labelClass}>Ключевые особенности, через запятую</p>
               <input
                 className={inputClass}
@@ -630,7 +630,7 @@ export function TextPage() {
 
         {mode === 'post' && (
           <>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Платформа</p>
               <Select
                 options={platformOptions}
@@ -638,7 +638,7 @@ export function TextPage() {
                 onChange={handSelectChange('platform')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Тон</p>
               <Select
                 options={postToneOptions}
@@ -646,7 +646,7 @@ export function TextPage() {
                 onChange={handSelectChange('postTone')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Длина</p>
               <Select
                 options={lengthOptions}
@@ -654,7 +654,7 @@ export function TextPage() {
                 onChange={handSelectChange('length')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Призыв к действию (необязательно)</p>
               <input
                 className={inputClass}
@@ -664,7 +664,7 @@ export function TextPage() {
                 placeholder="Например: подписаться, перейти по ссылке"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3 col-span-1 sm:col-span-2">
+            <div className="flex flex-col gap-1 py-3 col-span-1 sm:col-span-2">
               <p className={labelClass}>Тема поста</p>
               <input
                 className={inputClass}
@@ -679,7 +679,7 @@ export function TextPage() {
 
         {mode === 'slogan' && (
           <>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Название бизнеса (если есть)</p>
               <input
                 className={inputClass}
@@ -689,7 +689,7 @@ export function TextPage() {
                 placeholder="Необязательно"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Сфера бизнеса</p>
               <input
                 className={inputClass}
@@ -699,7 +699,7 @@ export function TextPage() {
                 placeholder="Например: кофейня, IT-стартап"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Стиль</p>
               <Select
                 options={sloganStyleOptions}
@@ -707,7 +707,7 @@ export function TextPage() {
                 onChange={handSelectChange('sloganStyle')}
               />
             </div>
-            <div className="flex flex-col gap-1 p-3">
+            <div className="flex flex-col gap-1 py-3">
               <p className={labelClass}>Сколько вариантов</p>
               <input
                 className={inputClass}
@@ -717,7 +717,7 @@ export function TextPage() {
                 placeholder="5"
               />
             </div>
-            <div className="flex flex-col gap-1 p-3 col-span-1 sm:col-span-2">
+            <div className="flex flex-col gap-1 py-3 col-span-1 sm:col-span-2">
               <p className={labelClass}>
                 Ценности / ключевые слова, через запятую
               </p>
@@ -884,7 +884,7 @@ export function TextPage() {
                 placeholder="Например: вернуть деньги в течение 10 дней"
               />
             </Field>
-            <p className="col-span-1 sm:col-span-2 md:col-span-4 px-3 text-xs text-amber-600">
+            <p className="col-span-1 sm:col-span-2 md:col-span-4 text-xs text-amber-600">
               Это шаблон документа, а не юридическая консультация: проверь текст
               перед отправкой. Паспортные данные и адрес лучше вписать в готовый
               текст самому, здесь их вводить не нужно.
@@ -1060,7 +1060,7 @@ export function TextPage() {
                 placeholder="Чем отличился, какие навыки, как работает в коллективе"
               />
             </Field>
-            <p className="col-span-1 sm:col-span-2 md:col-span-4 px-3 text-xs text-amber-600">
+            <p className="col-span-1 sm:col-span-2 md:col-span-4 text-xs text-amber-600">
               Это шаблон: проверь текст и впиши даты и подпись сам.
             </p>
           </>
@@ -1335,7 +1335,7 @@ export function TextPage() {
                 placeholder="Какие мысли и примеры использовать"
               />
             </Field>
-            <p className="col-span-1 sm:col-span-2 md:col-span-4 px-3 text-xs text-amber-600">
+            <p className="col-span-1 sm:col-span-2 md:col-span-4 text-xs text-amber-600">
               Это черновик для вдохновения: проверь факты и перепиши своими словами.
             </p>
           </>
@@ -1368,11 +1368,11 @@ export function TextPage() {
         </div>
       </div>
 
-      {error && <p className="text-red-600 px-3">{error}</p>}
+      {error && <p className="text-red-600">{error}</p>}
 
       <div className="flex-1">
         <textarea
-          className="p-4 border border-slate-200 outline-none focus:border-[#7A2432]/50 focus:ring-1 focus:ring-[#7A2432]/30 bg-white h-60 rounded-2xl shadow-sm w-full resize-none placeholder:text-slate-400"
+          className="p-4 border border-slate-200 outline-none focus:border-[#7A2432]/50 focus:ring-1 focus:ring-[#7A2432]/30 bg-white h-60 min-h-32 max-h-[85vh] rounded-2xl shadow-sm w-full resize-y placeholder:text-slate-400"
           value={form.result}
           onChange={handInputChange('result')}
           placeholder="Здесь появится сгенерированный текст"

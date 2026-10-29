@@ -59,7 +59,7 @@ export function SiteFooter() {
   const toggle = () => setOpen((value) => !value);
 
   return (
-    <footer ref={footerRef} className="px-5 pb-5 pt-8">
+    <footer ref={footerRef} className="page-shell page-shell-tight pb-5 pt-8">
       <div className="site-footer">
         <div className="site-footer-brand">
           <div className="flex items-center gap-2.5">

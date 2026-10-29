@@ -201,7 +201,7 @@ export function KodPage() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 px-5 py-1 gap-5">
+    <div className="page-shell grid grid-cols-1 md:grid-cols-5 py-1 gap-5">
       <div className="flex flex-col col-span-2 gap-3">
         <Select
           className="w-50"

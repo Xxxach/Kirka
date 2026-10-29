@@ -334,7 +334,7 @@ export function Header() {
   }, []);
 
   return (
-    <div ref={headerRef} className="sticky top-0 z-50 flex flex-col gap-1 p-3">
+    <div ref={headerRef} className="page-shell page-shell-tight sticky top-0 z-50 flex flex-col gap-1 py-3">
       {/* Десктопная версия */}
       <div className="hidden md:flex items-center justify-between gap-15 px-5 py-4 glass-bar rounded-3xl">
         <LogoInfo>

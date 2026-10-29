@@ -187,7 +187,7 @@ export function PhotoPage() {
   }, []);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 px-4 sm:px-5 py-1 gap-6 md:gap-10">
+    <div className="page-shell grid grid-cols-1 md:grid-cols-3 py-1 gap-6 md:gap-10">
       <div className="flex flex-col justify-between gap-3">
         <div className="flex flex-col gap-1">
           <Select
