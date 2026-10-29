@@ -7,7 +7,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ModePicker } from '../components/ModePicker';
 import { AboutBlock } from '../components/AboutBlock';
 import { RefineBar } from '../components/RefineBar';
-import { modeForPath, modePath } from '../data/textModes';
+import { ShareDialog } from '../components/ShareDialog';
+import { modeByValue, modeForPath, modePath } from '../data/textModes';
 
 // Значение этих полей уходит на сервер как value (там по нему подбирается инструкция).
 const marketplaceOptions = [
@@ -233,6 +234,7 @@ export function TextPage() {
   const [refining, setRefining] = useState('');
   const [quota, setQuota] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -1389,8 +1391,17 @@ export function TextPage() {
           onRefine={handleRefine}
           onRegenerate={handleGenerate}
           onUndo={handleUndo}
+          onShare={() => setShareOpen(true)}
         />
       )}
+
+      <ShareDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        text={form.result}
+        label={modeByValue[mode]?.label ?? 'Kirka'}
+        path={pathname}
+      />
 
       <AboutBlock key={mode} mode={mode} />
     </div>

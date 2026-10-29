@@ -130,6 +130,14 @@ pages.forEach((page) => {
   );
   html = replaceOnce(html, /(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`);
 
+  if (existsSync(join(root, 'public', 'og', `${slug}.png`))) {
+    const image = `${SITE}/og/${slug}.png`;
+    const alt = title.replace(/\s+[\u2014-]\s+Kirka$/, '');
+    html = replaceOnce(html, /(<meta property="og:image" content=")[^"]*(")/, `$1${image}$2`);
+    html = replaceOnce(html, /(<meta property="og:image:alt" content=")[^"]*(")/, `$1${esc(alt)}$2`);
+    html = replaceOnce(html, /(<meta name="twitter:image" content=")[^"]*(")/, `$1${image}$2`);
+  }
+
   html = withBody(html, page);
 
   const dir = join(dist, slug);
