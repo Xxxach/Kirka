@@ -5,6 +5,7 @@ import { ThemedSelect as Select } from '../components/ThemedSelect';
 import Collapse from '../components/Collapse';
 import { AdSlot } from '../components/AdSlot';
 import { FileDropzone } from '../components/FileDropzone';
+import { ShareFileButton } from '../components/ShareFileButton';
 
 // locked: true — режим закрыт на время бета-теста (тяжёлые операции).
 // Чтобы открыть, достаточно убрать locked и суффикс «— скоро» в label
@@ -289,15 +290,18 @@ export function PhotoPage() {
               </div>
             )}
           </div>
-          <div className="h-12 mt-2">
+          <div className="min-h-12 mt-2">
             {resultUrl && (
-              <a
-                href={resultUrl}
-                download={getResultFileName()}
-                className="inline-block text-center bg-blue-600 text-white rounded-2xl px-6 py-2 text-sm hover:bg-blue-700"
-              >
-                Скачать результат
-              </a>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={resultUrl}
+                  download={getResultFileName()}
+                  className="inline-block text-center bg-blue-600 text-white rounded-2xl px-6 py-2 text-sm hover:bg-blue-700"
+                >
+                  Скачать результат
+                </a>
+                <ShareFileButton url={resultUrl} filename={getResultFileName()} source="photo" />
+              </div>
             )}
           </div>
         </div>

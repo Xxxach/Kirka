@@ -15,6 +15,8 @@ const {
   PORT = 3001,
   FRONTEND_ORIGIN = 'http://localhost:5173',
   TRUST_PROXY = 'false',
+  TG_BOT_TOKEN,
+  TG_CHAT_ID,
 } = process.env;
 
 // ---------- Проверка обязательных переменных ----------
@@ -97,6 +99,49 @@ async function askDeepSeek(prompt, { system, temperature } = {}) {
   return data.choices[0].message.content.trim();
 }
 
+// ---------- Уведомления владельцу в Telegram ----------
+
+const TG_ENABLED = Boolean(TG_BOT_TOKEN && TG_CHAT_ID);
+const alertCooldown = new Map();
+
+async function notifyOwner(text, { key, cooldownMs = 0 } = {}) {
+  if (!TG_ENABLED) return false;
+  const now = Date.now();
+  if (key) {
+    if (now < (alertCooldown.get(key) ?? 0)) return false;
+    alertCooldown.set(key, now + cooldownMs);
+    if (alertCooldown.size > 300) {
+      for (const [k, until] of alertCooldown) if (until < now) alertCooldown.delete(k);
+    }
+  }
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TG_CHAT_ID, text: text.slice(0, 4000), disable_web_page_preview: true }),
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!r.ok) {
+      console.error(`Telegram: ${r.status} ${(await r.text()).slice(0, 200)}`);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error(`Telegram: ${e.message}`);
+    return false;
+  }
+}
+
+async function reportAiFailure(error, tier) {
+  if (error?.userMessage) return;
+  const text = String(error?.message || error);
+  const quota = /neurons|4006|quota|rate.?limit|too many requests|\b429\b/i.test(text);
+  await notifyOwner(
+    `${quota ? '🚨 Похоже, кончилась квота ИИ' : '⚠️ Ошибка ИИ-провайдера'} (${tier})\n\n${text.slice(0, 600)}`,
+    { key: `ai:${tier}:${quota ? 'quota' : 'error'}`, cooldownMs: 30 * 60 * 1000 },
+  );
+}
+
 // ---------- Тарифы: свой дневной лимит и своя очередь на каждый ----------
 
 const TIERS = {
@@ -173,6 +218,10 @@ async function checkLimit(req, res, next) {
       entry = await bumpShared(key, now);
     } catch (e) {
       console.error(e.message);
+      await notifyOwner(`⚠️ База лимитов (D1) недоступна, считаю в памяти\n\n${e.message}`, {
+        key: 'd1',
+        cooldownMs: 60 * 60 * 1000,
+      });
     }
   }
   entry ??= bumpLocal(key, now);
@@ -203,7 +252,7 @@ app.use(express.json({ limit: '20kb' }));
 // Лёгкая точка для "будильника" (UptimeRobot / cron-job.org),
 // чтобы бесплатный Render не засыпал через 15 минут простоя.
 app.get('/health', (req, res) =>
-  res.status(200).json({ ok: true, sha: process.env.GIT_SHA || 'dev', limits: D1_URL ? 'shared' : 'memory' }),
+  res.status(200).json({ ok: true, sha: process.env.GIT_SHA || 'dev', limits: D1_URL ? 'shared' : 'memory', telegram: TG_ENABLED }),
 );
 
 // ---------- Обратная связь ----------
@@ -235,6 +284,7 @@ app.post('/api/feedback', async (req, res) => {
   const line = `[${new Date().toISOString()}] (${page}) ${message.replace(/\s+/g, ' ')}\n`;
 
   console.log('--- Обратная связь ---\n' + line);
+  await notifyOwner(`💬 Обратная связь${page ? ` · ${page}` : ''}\n\n${message}`);
   try {
     const fs = await import('node:fs/promises');
     await fs.appendFile('feedback.log', line, 'utf8');
@@ -244,6 +294,58 @@ app.post('/api/feedback', async (req, res) => {
   }
 
   res.json({ ok: true });
+});
+
+const errorUsage = new Map();
+const ERROR_IP_HOURLY_LIMIT = 5;
+const ERROR_GLOBAL_HOURLY_LIMIT = 20;
+const HOUR_MS = 60 * 60 * 1000;
+const errorGlobal = { count: 0, resetAt: 0 };
+
+const str = (v, max) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '');
+
+app.post('/api/client-error', async (req, res) => {
+  const message = str(req.body?.message, 300);
+  if (!message) return res.status(204).end();
+
+  const now = Date.now();
+  if (now > errorGlobal.resetAt) {
+    errorGlobal.count = 0;
+    errorGlobal.resetAt = now + HOUR_MS;
+  }
+  let entry = errorUsage.get(req.ip);
+  if (!entry || now > entry.resetAt) entry = { count: 0, resetAt: now + HOUR_MS };
+  if (entry.count >= ERROR_IP_HOURLY_LIMIT || errorGlobal.count >= ERROR_GLOBAL_HOURLY_LIMIT) {
+    return res.status(204).end();
+  }
+  entry.count += 1;
+  errorGlobal.count += 1;
+  errorUsage.set(req.ip, entry);
+  if (errorUsage.size > 2000) {
+    for (const [ip, e] of errorUsage) if (now > e.resetAt) errorUsage.delete(ip);
+  }
+
+  const source = str(req.body?.source, 150);
+  const line = Number(req.body?.line) || 0;
+  const col = Number(req.body?.col) || 0;
+  const page = str(req.body?.page, 100);
+  const stack = typeof req.body?.stack === 'string' ? req.body.stack.slice(0, 700) : '';
+  const ua = str(req.body?.ua, 150);
+
+  const report = [
+    `🐞 Ошибка на сайте${page ? ` · ${page}` : ''}`,
+    '',
+    message,
+    source ? `${source}${line ? `:${line}:${col}` : ''}` : '',
+    stack ? `\n${stack}` : '',
+    ua ? `\n${ua}` : '',
+  ]
+    .filter((part) => part !== '')
+    .join('\n');
+
+  console.error(`[client-error] ${message} @ ${source}:${line}`);
+  await notifyOwner(report, { key: `client:${message}:${source}:${line}`, cooldownMs: HOUR_MS });
+  res.status(204).end();
 });
 
 // ---------- Промпты ----------
@@ -998,6 +1100,7 @@ app.post('/api/refine-text', validateRefineRequest, checkLimit, async (req, res)
     res.json({ result: cleanText(raw), remaining: req.remaining, limit: req.limit, tier: req.tier, action: req.body.action });
   } catch (e) {
     console.error(e.message);
+    await reportAiFailure(e, req.tier);
     res.status(500).json({ error: 'AI request failed', message: e.userMessage || 'Не удалось выполнить запрос' });
   }
 });
@@ -1079,6 +1182,7 @@ for (const [route, build] of Object.entries(routeHandlers)) {
       res.json({ result, remaining: req.remaining, limit: req.limit, tier: req.tier, mode: req.body.mode });
     } catch (e) {
       console.error(e.message);
+      await reportAiFailure(e, req.tier);
       res.status(500).json({ error: 'AI request failed', message: e.userMessage || 'Не удалось выполнить запрос' });
     }
   });

@@ -5,6 +5,7 @@ import { ThemedSelect as Select } from '../components/ThemedSelect';
 import Collapse from '../components/Collapse';
 import { AdSlot } from '../components/AdSlot';
 import { FileDropzone } from '../components/FileDropzone';
+import { ShareFileButton } from '../components/ShareFileButton';
 import {
   ZIP_MAX_FILES,
   ZIP_MAX_BYTES,
@@ -431,17 +432,24 @@ export function FilePage() {
               </div>
             )}
           </div>
-          <div className="h-12 mt-2">
+          <div className="min-h-12 mt-2">
             {resultUrl && (
-              <a
-                href={resultUrl}
-                download={isArchive ? safeArchiveName(zipName) : getResultFileName()}
-                className="inline-block text-center bg-blue-600 text-white rounded-2xl px-6 py-2 text-sm hover:bg-blue-700"
-              >
-                {isArchive && zipInfo
-                  ? `Скачать архив · ${zipInfo.count} файл. · ${formatSize(zipInfo.size)}`
-                  : 'Скачать результат'}
-              </a>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={resultUrl}
+                  download={isArchive ? safeArchiveName(zipName) : getResultFileName()}
+                  className="inline-block text-center bg-blue-600 text-white rounded-2xl px-6 py-2 text-sm hover:bg-blue-700"
+                >
+                  {isArchive && zipInfo
+                    ? `Скачать архив · ${zipInfo.count} файл. · ${formatSize(zipInfo.size)}`
+                    : 'Скачать результат'}
+                </a>
+                <ShareFileButton
+                  url={resultUrl}
+                  filename={isArchive ? safeArchiveName(zipName) : getResultFileName()}
+                  source="file"
+                />
+              </div>
             )}
             {isArchive && !resultUrl && files.length > 0 && (
               <p className="px-1 pt-2 text-xs text-slate-400">
