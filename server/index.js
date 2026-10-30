@@ -103,6 +103,7 @@ async function askDeepSeek(prompt, { system, temperature } = {}) {
 
 const TG_ENABLED = Boolean(TG_BOT_TOKEN && TG_CHAT_ID);
 const alertCooldown = new Map();
+let tgLastError = null;
 
 async function notifyOwner(text, { key, cooldownMs = 0 } = {}) {
   if (!TG_ENABLED) return false;
@@ -122,12 +123,16 @@ async function notifyOwner(text, { key, cooldownMs = 0 } = {}) {
       signal: AbortSignal.timeout(4000),
     });
     if (!r.ok) {
-      console.error(`Telegram: ${r.status} ${(await r.text()).slice(0, 200)}`);
+      const body = (await r.text()).slice(0, 200);
+      tgLastError = `${r.status} ${body}`;
+      console.error(`Telegram: ${tgLastError}`);
       return false;
     }
+    tgLastError = null;
     return true;
   } catch (e) {
-    console.error(`Telegram: ${e.message}`);
+    tgLastError = `${e.message}${e.cause?.code ? ` (${e.cause.code})` : ''}`;
+    console.error(`Telegram: ${tgLastError}`);
     return false;
   }
 }
@@ -252,7 +257,7 @@ app.use(express.json({ limit: '20kb' }));
 // Лёгкая точка для "будильника" (UptimeRobot / cron-job.org),
 // чтобы бесплатный Render не засыпал через 15 минут простоя.
 app.get('/health', (req, res) =>
-  res.status(200).json({ ok: true, sha: process.env.GIT_SHA || 'dev', limits: D1_URL ? 'shared' : 'memory', telegram: TG_ENABLED }),
+  res.status(200).json({ ok: true, sha: process.env.GIT_SHA || 'dev', limits: D1_URL ? 'shared' : 'memory', telegram: TG_ENABLED, telegramError: tgLastError }),
 );
 
 // ---------- Обратная связь ----------
