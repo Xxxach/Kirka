@@ -256,9 +256,27 @@ app.use(express.json({ limit: '20kb' }));
 
 // Лёгкая точка для "будильника" (UptimeRobot / cron-job.org),
 // чтобы бесплатный Render не засыпал через 15 минут простоя.
-app.get('/health', (req, res) =>
-  res.status(200).json({ ok: true, sha: process.env.GIT_SHA || 'dev', limits: D1_URL ? 'shared' : 'memory', telegram: TG_ENABLED, telegramError: tgLastError }),
-);
+app.get('/health', async (req, res) => {
+  const body = {
+    ok: true,
+    sha: process.env.GIT_SHA || 'dev',
+    limits: D1_URL ? 'shared' : 'memory',
+    telegram: TG_ENABLED,
+  };
+  if (req.query?.tg === 'test') {
+    if (!TG_ENABLED) {
+      body.telegramTest = 'not_configured';
+    } else {
+      const sent = await notifyOwner('✅ Проверка связи: сервер Kirka видит Telegram', {
+        key: 'health-test',
+        cooldownMs: 60 * 1000,
+      });
+      body.telegramTest = sent ? 'sent' : tgLastError ? 'failed' : 'cooldown';
+    }
+  }
+  body.telegramError = tgLastError;
+  res.status(200).json(body);
+});
 
 // ---------- Обратная связь ----------
 
