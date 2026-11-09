@@ -51,6 +51,8 @@ jobs:
             CF_D1_DATABASE_ID=${{ secrets.CF_D1_DATABASE_ID }}
             TG_BOT_TOKEN=${{ secrets.TG_BOT_TOKEN }}
             TG_CHAT_ID=${{ secrets.TG_CHAT_ID }}
+            TG_RELAY_URL=${{ secrets.TG_RELAY_URL }}
+            TG_RELAY_KEY=${{ secrets.TG_RELAY_KEY }}
             FRONTEND_ORIGIN=${{ vars.FRONTEND_ORIGIN }}
             TRUST_PROXY=true
             GIT_SHA=${{ github.sha }}

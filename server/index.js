@@ -17,6 +17,8 @@ const {
   TRUST_PROXY = 'false',
   TG_BOT_TOKEN,
   TG_CHAT_ID,
+  TG_RELAY_URL,
+  TG_RELAY_KEY,
 } = process.env;
 
 // ---------- Проверка обязательных переменных ----------
@@ -101,7 +103,8 @@ async function askDeepSeek(prompt, { system, temperature } = {}) {
 
 // ---------- Уведомления владельцу в Telegram ----------
 
-const TG_ENABLED = Boolean(TG_BOT_TOKEN && TG_CHAT_ID);
+const TG_RELAY = Boolean(TG_RELAY_URL && TG_RELAY_KEY);
+const TG_ENABLED = TG_RELAY || Boolean(TG_BOT_TOKEN && TG_CHAT_ID);
 const alertCooldown = new Map();
 let tgLastError = null;
 
@@ -116,12 +119,20 @@ async function notifyOwner(text, { key, cooldownMs = 0 } = {}) {
     }
   }
   try {
-    const r = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: TG_CHAT_ID, text: text.slice(0, 4000), disable_web_page_preview: true }),
-      signal: AbortSignal.timeout(4000),
-    });
+    const message = text.slice(0, 4000);
+    const r = TG_RELAY
+      ? await fetch(TG_RELAY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TG_RELAY_KEY}` },
+          body: JSON.stringify({ text: message }),
+          signal: AbortSignal.timeout(5000),
+        })
+      : await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: TG_CHAT_ID, text: message, disable_web_page_preview: true }),
+          signal: AbortSignal.timeout(4000),
+        });
     if (!r.ok) {
       const body = (await r.text()).slice(0, 200);
       tgLastError = `${r.status} ${body}`;
@@ -262,6 +273,7 @@ app.get('/health', async (req, res) => {
     sha: process.env.GIT_SHA || 'dev',
     limits: D1_URL ? 'shared' : 'memory',
     telegram: TG_ENABLED,
+    telegramVia: TG_RELAY ? 'relay' : 'direct',
   };
   if (req.query?.tg === 'test') {
     if (!TG_ENABLED) {
