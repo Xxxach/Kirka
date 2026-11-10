@@ -264,7 +264,8 @@ async function checkLimit(req, res, next) {
 const app = express();
 // true только если сервер реально стоит за прокси (Nginx/Cloudflare) —
 // иначе клиент может подделать IP через заголовок и обойти лимиты.
-app.set('trust proxy', TRUST_PROXY === 'true');
+const trustProxy = TRUST_PROXY === 'true' ? 1 : /^\d+$/.test(TRUST_PROXY) ? Number(TRUST_PROXY) : false;
+app.set('trust proxy', trustProxy);
 app.use(helmet());
 app.use(compression());
 app.use(cors({ origin: FRONTEND_ORIGIN }));
