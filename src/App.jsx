@@ -6,7 +6,6 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { TextPage } from './pages/TextPage';
-import { PrivacyPage } from './pages/PrivacyPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { Header } from './components/Header';
 import { useAdBlockDetector } from './hooks/useAdBlockDetector';
@@ -22,7 +21,12 @@ const loadKodPage = () =>
 const loadFilePage = () =>
   import('./pages/FilePage').then((m) => ({ default: m.FilePage }));
 
+const loadPrivacyPage = () =>
+  import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage }));
+const loadShareDialog = () => import('./components/ShareDialog');
+
 const PhotoPage = lazy(loadPhotoPage);
+const PrivacyPage = lazy(loadPrivacyPage);
 const KodPage = lazy(loadKodPage);
 const FilePage = lazy(loadFilePage);
 
@@ -86,6 +90,8 @@ function App() {
       loadPhotoPage();
       loadKodPage();
       loadFilePage();
+      loadPrivacyPage();
+      loadShareDialog();
     });
 
     return () => cancelIdle(id);

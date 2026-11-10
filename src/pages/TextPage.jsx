@@ -2,13 +2,16 @@ import { AdSlot } from '../components/AdSlot';
 import { getApiBase, friendlyError } from '../api';
 import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ModePicker } from '../components/ModePicker';
 import { AboutBlock } from '../components/AboutBlock';
 import { RefineBar } from '../components/RefineBar';
-import { ShareDialog } from '../components/ShareDialog';
 import { modeByValue, modeForPath, modePath } from '../data/textModes';
+
+const ShareDialog = lazy(() =>
+  import('../components/ShareDialog').then((m) => ({ default: m.ShareDialog })),
+);
 
 // Значение этих полей уходит на сервер как value (там по нему подбирается инструкция).
 const marketplaceOptions = [
@@ -1395,13 +1398,17 @@ export function TextPage() {
         />
       )}
 
-      <ShareDialog
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-        text={form.result}
-        label={modeByValue[mode]?.label ?? 'Kirka'}
-        path={pathname}
-      />
+      {shareOpen && (
+        <Suspense fallback={null}>
+          <ShareDialog
+            open
+            onClose={() => setShareOpen(false)}
+            text={form.result}
+            label={modeByValue[mode]?.label ?? 'Kirka'}
+            path={pathname}
+          />
+        </Suspense>
+      )}
 
       <AboutBlock key={mode} mode={mode} />
     </div>
