@@ -36,6 +36,9 @@ if (!CF_ACCOUNT_ID || !CF_API_TOKEN) {
 
 const SYSTEM_TEXT =
   'Ты пишешь готовые тексты на русском языке. Отвечай только самим текстом: без вступлений вроде «Вот текст», без пояснений и заключительных комментариев. Не используй markdown-разметку (звёздочки, решётки, обратные кавычки); списки оформляй дефисом или номером. Не придумывай факты, имена, числа и даты, которых нет в запросе: если данных нет, пиши обобщённо или оставляй заглушку в квадратных скобках.';
+const SYSTEM_TEXT_RU =
+  SYSTEM_TEXT +
+  ' Пиши только по-русски, кириллицей: никаких английских слов, фраз, транслитерации латиницей и иероглифов. Допустимы только названия брендов и сайтов (Wildberries, Telegram), общепринятые сокращения (HR, PDF) и слова, которые пользователь сам написал латиницей в запросе.';
 const SYSTEM_CODE =
   'Ты опытный инженер. Переводишь код с языка на язык. Отвечаешь только кодом, без markdown-обёрток и пояснений вне кода.';
 
@@ -74,6 +77,7 @@ async function askCloudflare(prompt, { system, temperature } = {}) {
       max_tokens: 2048,
       temperature,
     }),
+    signal: AbortSignal.timeout(50000),
   });
   if (!r.ok) throw new Error(await r.text());
   const data = await r.json();
@@ -95,6 +99,7 @@ async function askDeepSeek(prompt, { system, temperature } = {}) {
       max_tokens: 4000,
       temperature,
     }),
+    signal: AbortSignal.timeout(50000),
   });
   if (!r.ok) throw new Error(await r.text());
   const data = await r.json();
@@ -275,6 +280,10 @@ app.get('/health', async (req, res) => {
     telegram: TG_ENABLED,
     telegramVia: TG_RELAY ? 'relay' : 'direct',
   };
+  if (req.query?.ip === '1') {
+    body.ip = req.ip;
+    body.forwardedFor = req.headers['x-forwarded-for'] || null;
+  }
   if (req.query?.tg === 'test') {
     if (!TG_ENABLED) {
       body.telegramTest = 'not_configured';
@@ -1085,6 +1094,63 @@ function validateTextRequest(req, res, next) {
   next();
 }
 
+const ALLOWED_LATIN = new Set([
+  'wildberries', 'ozon', 'telegram', 'instagram', 'youtube', 'tiktok', 'whatsapp', 'avito', 'reels', 'shorts',
+  'linkedin', 'facebook', 'google', 'yandex', 'gmail', 'github', 'twitter', 'word', 'excel', 'powerpoint', 'zoom',
+  'iphone', 'android', 'windows', 'apple', 'samsung', 'wifi', 'email', 'mail', 'online', 'wi', 'fi', 'www', 'com',
+  'org', 'net', 'http', 'https', 'sku', 'qr', 'vpn', 'api', 'url', 'ios', 'pdf', 'zip', 'smm', 'seo', 'crm', 'sms',
+  'viber', 'skype', 'slack', 'notion', 'figma', 'photoshop', 'discord', 'twitch', 'pinterest', 'aliexpress',
+  'chatgpt', 'docx', 'png', 'jpg', 'jpeg', 'webp',
+]);
+const LATIN_WORD = /[A-Za-z]{3,}/g;
+const MIXED_SCRIPT = /[А-Яа-яЁё]+[A-Za-z]+[А-Яа-яЁё]*|[A-Za-z]+[А-Яа-яЁё]+/g;
+const CJK_CHARS = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g;
+
+function mostlyLatin(text) {
+  const latin = (text.match(/[A-Za-z]/g) || []).length;
+  const letters = (text.match(/[A-Za-zА-Яа-яЁё]/g) || []).length;
+  return letters > 0 && latin / letters > 0.5;
+}
+
+function inputTextOf(body) {
+  return Object.values(body || {})
+    .filter((v) => typeof v === 'string')
+    .join(' ');
+}
+
+function findLeaks(output, inputText) {
+  const leaks = new Set();
+  const cleaned = output.replace(/https?:\/\/\S+|www\.\S+|[\w.+-]+@[\w-]+\.[\w.-]+/g, ' ');
+  const cjk = cleaned.match(CJK_CHARS);
+  if (cjk) leaks.add(cjk.slice(0, 3).join(''));
+  for (const word of (cleaned.match(MIXED_SCRIPT) || []).slice(0, 5)) leaks.add(word);
+  if (mostlyLatin(inputText)) return [...leaks];
+  const known = new Set((inputText.match(LATIN_WORD) || []).map((w) => w.toLowerCase()));
+  for (const word of cleaned.match(LATIN_WORD) || []) {
+    const lower = word.toLowerCase();
+    if (ALLOWED_LATIN.has(lower) || known.has(lower) || /^[A-Z]{2,6}$/.test(word)) continue;
+    leaks.add(word);
+  }
+  return [...leaks];
+}
+
+async function ensureRussian(call, output, inputText) {
+  const leaks = findLeaks(output, inputText);
+  if (leaks.length === 0) return output;
+  try {
+    const fixed = cleanText(
+      await call(
+        `В тексте ниже есть лишние иностранные слова: ${leaks.slice(0, 12).join(', ')}. Перепиши текст целиком по-русски: замени эти слова русскими, а смысл, структуру, абзацы, имена, числа и заглушки в [квадратных скобках] сохрани. Названия брендов и сайтов, которые есть в исходных данных, оставь как есть. Выведи только готовый текст, без пояснений.\n\n=== НАЧАЛО ТЕКСТА ===\n${output}\n=== КОНЕЦ ТЕКСТА ===`,
+        { system: SYSTEM_TEXT_RU, temperature: 0.3 },
+      ),
+    );
+    return fixed && findLeaks(fixed, inputText).length < leaks.length ? fixed : output;
+  } catch (e) {
+    console.error(`ensureRussian: ${e.message}`);
+    return output;
+  }
+}
+
 const REFINE_ACTIONS = {
   shorter: 'сделай его короче примерно в полтора-два раза, оставив самое важное',
   longer: 'сделай его подробнее примерно в полтора раза, развивая уже имеющиеся мысли',
@@ -1128,11 +1194,13 @@ ${text}
 
 app.post('/api/refine-text', validateRefineRequest, checkLimit, async (req, res) => {
   try {
-    const raw = await TIERS[req.tier].call(buildRefinePrompt(req.body), {
-      system: SYSTEM_TEXT,
+    const call = TIERS[req.tier].call;
+    const raw = await call(buildRefinePrompt(req.body), {
+      system: mostlyLatin(req.body.text) ? SYSTEM_TEXT : SYSTEM_TEXT_RU,
       temperature: 0.4,
     });
-    res.json({ result: cleanText(raw), remaining: req.remaining, limit: req.limit, tier: req.tier, action: req.body.action });
+    const result = await ensureRussian(call, cleanText(raw), req.body.text);
+    res.json({ result, remaining: req.remaining, limit: req.limit, tier: req.tier, action: req.body.action });
   } catch (e) {
     console.error(e.message);
     await reportAiFailure(e, req.tier);
@@ -1210,10 +1278,12 @@ for (const [route, build] of Object.entries(routeHandlers)) {
       const call = TIERS[req.tier].call;
       const isCode = route === 'code';
       const raw = await call(build(req.body), {
-        system: isCode ? SYSTEM_CODE : SYSTEM_TEXT,
+        system: isCode ? SYSTEM_CODE : SYSTEM_TEXT_RU,
         temperature: isCode ? 0.2 : (TEMPERATURE[req.body.mode] ?? 0.7),
       });
-      const result = isCode ? stripCodeFence(raw) : cleanText(raw);
+      const result = isCode
+        ? stripCodeFence(raw)
+        : await ensureRussian(call, cleanText(raw), inputTextOf(req.body));
       res.json({ result, remaining: req.remaining, limit: req.limit, tier: req.tier, mode: req.body.mode });
     } catch (e) {
       console.error(e.message);
