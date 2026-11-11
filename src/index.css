@@ -16,6 +16,118 @@ body {
   }
 }
 
+.ksel { position: relative; }
+.ksel__btn {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 38px;
+  padding: 0;
+  text-align: left;
+  background-color: #ffffff;
+  color: #333333;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  cursor: default;
+  outline: 0;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 100ms;
+}
+.ksel__btn:hover { border-color: #94a3b8; }
+.ksel__btn:focus-within,
+.ksel__btn[aria-expanded='true'] {
+  border-color: #7a2432;
+  box-shadow: 0 0 0 1px #7a2432;
+}
+.ksel__val {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+  padding: 2px 16px;
+}
+.ksel__label {
+  grid-area: 1 / 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ksel__find {
+  grid-area: 1 / 1;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  user-select: text;
+  pointer-events: none;
+}
+.ksel__btn.is-search .ksel__find { pointer-events: auto; }
+.ksel__ph { color: #808080; }
+.ksel__sep {
+  align-self: stretch;
+  width: 1px;
+  margin: 8px 0;
+  background-color: #cbd5e1;
+}
+.ksel__arrow {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  color: #cbd5e1;
+  transition: color 150ms;
+}
+.ksel__arrow:hover { color: #999999; }
+.ksel__btn:focus-within .ksel__arrow,
+.ksel__btn[aria-expanded='true'] .ksel__arrow { color: #666666; }
+.ksel__btn:focus-within .ksel__arrow:hover,
+.ksel__btn[aria-expanded='true'] .ksel__arrow:hover { color: #333333; }
+.ksel__chev {
+  display: block;
+  transition: transform 300ms ease;
+}
+.ksel__btn[aria-expanded='true'] .ksel__chev { transform: rotate(180deg); }
+.ksel__pop {
+  position: fixed;
+  z-index: 9999;
+  box-sizing: border-box;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 0 0 1px hsla(0, 0%, 0%, 0.1), 0 4px 11px hsla(0, 0%, 0%, 0.1);
+  animation: kirka-select-fade 220ms ease-out;
+}
+.ksel__item {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: default;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.ksel__item.is-active { background-color: #f3e8ea; }
+.ksel__item:not(.is-off):not(.is-selected):active { background-color: #e9d6da; }
+.ksel__item.is-selected { background-color: #7a2432; color: #ffffff; }
+.ksel__item.is-off { color: #cbd5e1; }
+.ksel__empty {
+  padding: 8px 12px;
+  text-align: center;
+  color: #999999;
+}
+
 /* Подсветка кода (highlight.js) в цветах сайта */
 .hljs { color: #1e293b; }
 .hljs-keyword, .hljs-doctag, .hljs-selector-tag { color: #7a2432; font-weight: 600; }
@@ -446,35 +558,29 @@ html.dark-theme .gel:disabled { box-shadow: inset 0 0 0 1px rgba(150, 150, 150, 
   }
 }
 
-/* Нейтральная тёмная палитра для React Select */
-html.dark-theme [class*="-control"] {
-  background-color: #111111 !important;
-  border-color: #292929 !important;
-  color: #e5e5e5 !important;
-  box-shadow: none !important;
+html.dark-theme .ksel__btn {
+  background-color: #111111;
+  border-color: #292929;
+  color: #cccccc;
 }
-html.dark-theme [class*="-control"]:hover,
-html.dark-theme [class*="-control"]:focus-within {
-  border-color: #60a5fa !important;
+html.dark-theme .ksel__btn:hover { border-color: #60a5fa; }
+html.dark-theme .ksel__btn:focus-within,
+html.dark-theme .ksel__btn[aria-expanded='true'] {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.52);
 }
-html.dark-theme [class*="-control"]:focus-within {
-  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.52) !important;
-}
-html.dark-theme [class*="-menu"] {
-  background-color: #0f0f0f !important;
+html.dark-theme .ksel__ph { color: #cccccc; }
+html.dark-theme .ksel .ksel__btn input.ksel__find { color: #cccccc; }
+html.dark-theme .ksel__sep { background-color: #3b3b3b; }
+html.dark-theme .ksel__pop {
+  background-color: #0f0f0f;
   border: 1px solid #303030;
-  color: #e5e5e5 !important;
+  color: #e5e5e5;
 }
-html.dark-theme [class*="-option"] {
-  color: #e5e5e5 !important;
-  background-color: transparent !important;
-}
-html.dark-theme [class*="-option"][id]:hover { background-color: #171717 !important; }
-html.dark-theme [class*="-option"][aria-selected="true"] { background-color: #1d4ed8 !important; }
-html.dark-theme [class*="-singleValue"],
-html.dark-theme [class*="-input"],
-html.dark-theme [class*="-placeholder"] { color: #cccccc !important; }
-html.dark-theme [class*="-indicatorSeparator"] { background-color: #3b3b3b !important; }
+html.dark-theme .ksel__item.is-active { background-color: #171717; }
+html.dark-theme .ksel__item:not(.is-off):not(.is-selected):active { background-color: #171717; }
+html.dark-theme .ksel__item.is-selected { background-color: #1d4ed8; color: #e5e5e5; }
+html.dark-theme .ksel__item.is-off { color: #6b6b6b; }
 
 /* Новые панели, выбор вида и мелочи */
 html.dark-theme .mode-drop {
@@ -825,4 +931,26 @@ html.dark-theme .site-footer-bottom {
   .page-shell-tight {
     padding-inline: 2rem;
   }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(22px) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  :is(.page-shell.grid, .page-shell > .grid:first-child) > :not(:has([role='complementary'])) {
+    animation: rise-in 480ms cubic-bezier(0.22, 1.25, 0.36, 1) backwards;
+  }
+  :is(.page-shell.grid, .page-shell > .grid:first-child) > :nth-child(2) { animation-delay: 45ms; }
+  :is(.page-shell.grid, .page-shell > .grid:first-child) > :nth-child(3) { animation-delay: 90ms; }
+  :is(.page-shell.grid, .page-shell > .grid:first-child) > :nth-child(4) { animation-delay: 135ms; }
+  :is(.page-shell.grid, .page-shell > .grid:first-child) > :nth-child(5) { animation-delay: 180ms; }
+  :is(.page-shell.grid, .page-shell > .grid:first-child) > :nth-child(6) { animation-delay: 225ms; }
+  :is(.page-shell.grid, .page-shell > .grid:first-child) > :nth-child(n + 7) { animation-delay: 270ms; }
 }

@@ -207,8 +207,6 @@ export function PhotoPage() {
             options={compressLevelOptions}
             value={photoForm.compression}
             onChange={handleCompressChange}
-            menuPortalTarget={document.body}
-            styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
           />
         </Collapse>
         <Collapse show={photoForm.mode.value === 'upscale'}>
@@ -219,8 +217,6 @@ export function PhotoPage() {
                 value={photoForm.tier}
                 onChange={handleTierChange}
                 isOptionDisabled={(option) => option.locked}
-                menuPortalTarget={document.body}
-                styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
               />
               <p className="text-xs text-slate-400 px-1">
                 Улучшенная модель с лучшей детализацией откроется в ходе бета-теста.
@@ -232,8 +228,6 @@ export function PhotoPage() {
                 value={photoForm.level}
                 onChange={handleLevelChange}
                 isOptionDisabled={(option) => option.locked}
-                menuPortalTarget={document.body}
-                styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
               />
               <p className="text-xs text-slate-400 px-1">
                 Размер фото не меняется. Чем выше уровень, тем больше списывается
