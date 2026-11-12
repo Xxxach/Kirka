@@ -106,6 +106,85 @@ async function askDeepSeek(prompt, { system, temperature } = {}) {
   return data.choices[0].message.content.trim();
 }
 
+async function readDeltas(response, pick, onDelta) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let full = '';
+  const handle = (line) => {
+    if (!line.startsWith('data:')) return;
+    const payload = line.slice(5).trim();
+    if (!payload || payload === '[DONE]') return;
+    let obj;
+    try {
+      obj = JSON.parse(payload);
+    } catch {
+      return;
+    }
+    const piece = pick(obj);
+    if (typeof piece === 'string' && piece) {
+      full += piece;
+      onDelta(piece);
+    }
+  };
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let at;
+    while ((at = buffer.indexOf('\n')) >= 0) {
+      handle(buffer.slice(0, at).replace(/\r$/, ''));
+      buffer = buffer.slice(at + 1);
+    }
+  }
+  buffer += decoder.decode();
+  if (buffer.trim()) handle(buffer.trim());
+  return full.trim();
+}
+
+async function streamCloudflare(prompt, { system, temperature, signal, onDelta } = {}) {
+  const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/${CF_MODEL}`;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CF_API_TOKEN}` },
+    body: JSON.stringify({
+      messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: prompt }],
+      max_tokens: 2048,
+      temperature,
+      stream: true,
+    }),
+    signal,
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return readDeltas(r, (obj) => obj.response, onDelta);
+}
+
+function requireDeepSeek() {
+  if (!DEEPSEEK_BASE_URL || !DEEPSEEK_API_KEY) {
+    const err = new Error('pro_unavailable');
+    err.userMessage = 'Улучшенная модель временно недоступна. Попробуй обычную.';
+    throw err;
+  }
+}
+
+async function streamDeepSeek(prompt, { system, temperature, signal, onDelta } = {}) {
+  requireDeepSeek();
+  const r = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: prompt }],
+      max_tokens: 4000,
+      temperature,
+      stream: true,
+    }),
+    signal,
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return readDeltas(r, (obj) => obj.choices?.[0]?.delta?.content, onDelta);
+}
+
 // ---------- Уведомления владельцу в Telegram ----------
 
 const TG_RELAY = Boolean(TG_RELAY_URL && TG_RELAY_KEY);
@@ -166,8 +245,8 @@ async function reportAiFailure(error, tier) {
 // ---------- Тарифы: свой дневной лимит и своя очередь на каждый ----------
 
 const TIERS = {
-  basic: { call: askCloudflare, limit: 300 },
-  pro: { call: askDeepSeek, limit: 30 },
+  basic: { call: askCloudflare, stream: streamCloudflare, limit: 300 },
+  pro: { call: askDeepSeek, stream: streamDeepSeek, limit: 30 },
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -1152,6 +1231,77 @@ async function ensureRussian(call, output, inputText) {
   }
 }
 
+const STREAM_TIMEOUT_MS = 50000;
+const STREAM_PING_MS = 8000;
+
+async function runAi(req, res, plan) {
+  const tier = TIERS[req.tier];
+  let started = false;
+  let ping = 0;
+  let gone = false;
+  const abort = new AbortController();
+  const send = (obj) => {
+    if (!res.writableEnded && !res.destroyed) res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  };
+  const start = () => {
+    if (started) return;
+    started = true;
+    res.status(200);
+    res.set({
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    res.flushHeaders();
+  };
+  try {
+    const { prompt, system, temperature, finish, meta } = plan();
+    const info = () => ({ remaining: req.remaining, limit: req.limit, tier: req.tier });
+    if (req.body.stream !== true) {
+      const raw = await tier.call(prompt, { system, temperature });
+      const result = await finish(raw);
+      res.json({ result, ...info(), ...meta });
+      return;
+    }
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        gone = true;
+        abort.abort();
+      }
+    });
+    const raw = await tier.stream(prompt, {
+      system,
+      temperature,
+      signal: AbortSignal.any([abort.signal, AbortSignal.timeout(STREAM_TIMEOUT_MS)]),
+      onDelta: (text) => {
+        start();
+        send({ type: 'delta', text });
+      },
+    });
+    start();
+    ping = setInterval(() => {
+      if (!res.writableEnded && !res.destroyed) res.write(': ping\n\n');
+    }, STREAM_PING_MS);
+    const result = await finish(raw);
+    send({ type: 'done', result, ...info(), ...meta });
+    res.end();
+  } catch (e) {
+    if (gone) return;
+    console.error(e.message);
+    await reportAiFailure(e, req.tier);
+    const message = e.userMessage || 'Не удалось выполнить запрос';
+    if (!started) {
+      res.status(500).json({ error: 'AI request failed', message });
+    } else {
+      send({ type: 'error', message });
+      res.end();
+    }
+  } finally {
+    clearInterval(ping);
+  }
+}
+
 const REFINE_ACTIONS = {
   shorter: 'сделай его короче примерно в полтора-два раза, оставив самое важное',
   longer: 'сделай его подробнее примерно в полтора раза, развивая уже имеющиеся мысли',
@@ -1193,21 +1343,18 @@ ${text}
 === КОНЕЦ ТЕКСТА ===`;
 }
 
-app.post('/api/refine-text', validateRefineRequest, checkLimit, async (req, res) => {
-  try {
+app.post('/api/refine-text', validateRefineRequest, checkLimit, (req, res) =>
+  runAi(req, res, () => {
     const call = TIERS[req.tier].call;
-    const raw = await call(buildRefinePrompt(req.body), {
+    return {
+      prompt: buildRefinePrompt(req.body),
       system: mostlyLatin(req.body.text) ? SYSTEM_TEXT : SYSTEM_TEXT_RU,
       temperature: 0.4,
-    });
-    const result = await ensureRussian(call, cleanText(raw), req.body.text);
-    res.json({ result, remaining: req.remaining, limit: req.limit, tier: req.tier, action: req.body.action });
-  } catch (e) {
-    console.error(e.message);
-    await reportAiFailure(e, req.tier);
-    res.status(500).json({ error: 'AI request failed', message: e.userMessage || 'Не удалось выполнить запрос' });
-  }
-});
+      finish: (raw) => ensureRussian(call, cleanText(raw), req.body.text),
+      meta: { action: req.body.action },
+    };
+  }),
+);
 
 // Языки, между которыми можно переводить. Проверка нужна и от Auto в качестве цели,
 // и от подмены названия языка (оно попадает в промпт).
@@ -1274,24 +1421,41 @@ ${code}
 };
 
 for (const [route, build] of Object.entries(routeHandlers)) {
-  app.post(`/api/${route === 'text' ? 'generate-text' : 'convert-code'}`, ...(route === 'code' ? [validateCodeRequest] : [validateTextRequest]), checkLimit, async (req, res) => {
-    try {
+  app.post(`/api/${route === 'text' ? 'generate-text' : 'convert-code'}`, ...(route === 'code' ? [validateCodeRequest] : [validateTextRequest]), checkLimit, (req, res) =>
+    runAi(req, res, () => {
       const call = TIERS[req.tier].call;
       const isCode = route === 'code';
-      const raw = await call(build(req.body), {
+      return {
+        prompt: build(req.body),
         system: isCode ? SYSTEM_CODE : SYSTEM_TEXT_RU,
         temperature: isCode ? 0.2 : (TEMPERATURE[req.body.mode] ?? 0.7),
-      });
-      const result = isCode
-        ? stripCodeFence(raw)
-        : await ensureRussian(call, cleanText(raw), inputTextOf(req.body));
-      res.json({ result, remaining: req.remaining, limit: req.limit, tier: req.tier, mode: req.body.mode });
-    } catch (e) {
-      console.error(e.message);
-      await reportAiFailure(e, req.tier);
-      res.status(500).json({ error: 'AI request failed', message: e.userMessage || 'Не удалось выполнить запрос' });
-    }
-  });
+        finish: isCode
+          ? (raw) => stripCodeFence(raw)
+          : (raw) => ensureRussian(call, cleanText(raw), inputTextOf(req.body)),
+        meta: { mode: req.body.mode },
+      };
+    }),
+  );
 }
+
+app.get('/api/stream-probe', (req, res) => {
+  res.status(200);
+  res.set({
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    'X-Accel-Buffering': 'no',
+  });
+  res.flushHeaders();
+  let n = 0;
+  const timer = setInterval(() => {
+    n += 1;
+    res.write(`data: ${JSON.stringify({ n, t: Date.now() })}\n\n`);
+    if (n >= 5) {
+      clearInterval(timer);
+      res.end();
+    }
+  }, 600);
+  res.on('close', () => clearInterval(timer));
+});
 
 app.listen(PORT, () => console.log(`Server on :${PORT}`));

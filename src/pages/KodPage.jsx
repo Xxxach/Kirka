@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { getApiBase, friendlyError } from '../api';
+import { getApiBase, friendlyError, fetchAi, softClean } from '../api';
 import EditorImport from 'react-simple-code-editor';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
@@ -99,6 +99,7 @@ export function KodPage() {
   }, [result, resultLang]);
 
   const [fillState, setFillState] = useState('idle');
+  const [streaming, setStreaming] = useState(false);
 
   const handleGenerate = async () => {
     if (!code.trim()) {
@@ -113,21 +114,27 @@ export function KodPage() {
     setLoading(true);
     setError('');
     setFillState('loading');
+    const before = result;
+    const beforeLang = resultLang;
+    let streamed = false;
     try {
       const apiUrl = await getApiBase('text');
-      const res = await fetch(`${apiUrl}/api/convert-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { ok, data } = await fetchAi(
+        `${apiUrl}/api/convert-code`,
+        {
           code,
           sourceLang: kodForm.lang.label,
           targetLang: kodForm.relang.label,
           tier: kodForm.tier.value,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Не удалось перевести код');
+        },
+        (partial) => {
+          if (!streamed) setResultLang(kodForm.relang.value);
+          streamed = true;
+          setStreaming(true);
+          setResult(softClean(partial, { code: true }));
+        },
+      );
+      if (!ok) throw new Error(data.message || 'Не удалось перевести код');
 
       trackGoal('code_converted');
       setFillState('done');
@@ -135,9 +142,14 @@ export function KodPage() {
       setResultLang(kodForm.relang.value);
       setResult(data.result);
     } catch (err) {
+      if (streamed) {
+        setResult(before);
+        setResultLang(beforeLang);
+      }
       setError(friendlyError(err));
       console.error(err);
     } finally {
+      setStreaming(false);
       setLoading(false);
       setFillState('idle');
     }
@@ -324,7 +336,7 @@ export function KodPage() {
             isOptionDisabled={(o) => kodForm.lang.value !== 'auto' && o.value === kodForm.lang.value}
             placeholder="Выбери язык"
           />
-          {result && (
+          {result && !streaming && (
             <div className="flex shrink-0 gap-2">
               <button type="button" onClick={handleCopy} className={smallBtn}>
                 {copied ? 'Скопировано' : 'Копировать'}
@@ -337,7 +349,7 @@ export function KodPage() {
         </div>
         <div className="h-50 md:h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           {result ? (
-            <pre className="font-mono text-[13px] leading-relaxed">
+            <pre className={`ai-code font-mono text-[13px] leading-relaxed${streaming ? ' is-streaming' : ''}`}>
               {highlighted === null ? (
                 <code>{result}</code>
               ) : (

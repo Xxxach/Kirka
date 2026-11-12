@@ -1,5 +1,5 @@
 import { AdSlot } from '../components/AdSlot';
-import { getApiBase, friendlyError } from '../api';
+import { getApiBase, friendlyError, fetchAi, softClean } from '../api';
 import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
 import { Suspense, lazy, useState } from 'react';
@@ -235,6 +235,7 @@ export function TextPage() {
   const [error, setError] = useState('');
   const [fillState, setFillState] = useState('idle');
   const [refining, setRefining] = useState('');
+  const [streaming, setStreaming] = useState(false);
   const [quota, setQuota] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
   const [shareOpen, setShareOpen] = useState(false);
@@ -287,12 +288,13 @@ export function TextPage() {
     setLoading(true);
     setError('');
     setFillState('loading');
+    const before = form.result;
+    let streamed = false;
     try {
       const apiUrl = await getApiBase('text');
-      const res = await fetch(`${apiUrl}/api/generate-text`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { ok, data } = await fetchAi(
+        `${apiUrl}/api/generate-text`,
+        {
           mode,
           tier: form.tier?.value,
           unit: form.unit?.label,
@@ -335,12 +337,14 @@ export function TextPage() {
           addressee: form.addressee,
           details: form.details,
           businessTone: form.businessTone?.value,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok)
-        throw new Error(data.message || 'Не удалось выполнить запрос');
+        },
+        (partial) => {
+          streamed = true;
+          setStreaming(true);
+          setForm((prev) => ({ ...prev, result: softClean(partial) }));
+        },
+      );
+      if (!ok) throw new Error(data.message || 'Не удалось выполнить запрос');
 
       // Старый сервер не знает новых видов текста и молча отдаёт резюме: он не вернёт mode.
       if (data.mode !== mode)
@@ -353,9 +357,11 @@ export function TextPage() {
       setForm((prev) => ({ ...prev, result: data.result }));
       rememberQuota(data);
     } catch (err) {
+      if (streamed) setForm((prev) => ({ ...prev, result: before }));
       setError(friendlyError(err));
       console.error(err);
     } finally {
+      setStreaming(false);
       setLoading(false);
       setFillState('idle');
     }
@@ -376,18 +382,23 @@ export function TextPage() {
     }
     setRefining(action);
     setError('');
+    const before = form.result;
+    let streamed = false;
     try {
       const apiUrl = await getApiBase('text');
-      const res = await fetch(`${apiUrl}/api/refine-text`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, text, tier: form.tier?.value }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok)
+      const { ok, status, data } = await fetchAi(
+        `${apiUrl}/api/refine-text`,
+        { action, text, tier: form.tier?.value },
+        (partial) => {
+          streamed = true;
+          setStreaming(true);
+          setForm((prev) => ({ ...prev, result: softClean(partial) }));
+        },
+      );
+      if (!ok)
         throw new Error(
           data.message ||
-            (res.status === 404
+            (status === 404
               ? 'Сервер обновляется и пока не умеет дорабатывать текст. Попробуй чуть позже.'
               : 'Не удалось выполнить запрос'),
         );
@@ -398,9 +409,11 @@ export function TextPage() {
       setForm((prev) => ({ ...prev, result: data.result }));
       rememberQuota(data);
     } catch (err) {
+      if (streamed) setForm((prev) => ({ ...prev, result: before }));
       setError(friendlyError(err));
       console.error(err);
     } finally {
+      setStreaming(false);
       setRefining('');
     }
   };
@@ -1377,7 +1390,8 @@ export function TextPage() {
 
       <div className="flex-1">
         <textarea
-          className="p-4 border border-slate-200 outline-none focus:border-[#7A2432]/50 focus:ring-1 focus:ring-[#7A2432]/30 bg-white h-60 min-h-32 max-h-[85vh] rounded-2xl shadow-sm w-full resize-y placeholder:text-slate-400"
+          className={`ai-stream p-4 border border-slate-200 outline-none focus:border-[#7A2432]/50 focus:ring-1 focus:ring-[#7A2432]/30 bg-white h-60 min-h-32 max-h-[85vh] rounded-2xl shadow-sm w-full resize-y placeholder:text-slate-400${streaming ? ' is-streaming' : ''}`}
+          readOnly={loading || Boolean(refining)}
           value={form.result}
           onChange={handInputChange('result')}
           placeholder="Здесь появится сгенерированный текст"

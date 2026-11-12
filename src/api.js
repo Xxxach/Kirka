@@ -56,3 +56,84 @@ export function friendlyError(err) {
   }
   return msg || 'Что-то пошло не так';
 }
+
+const INTRO_LINE = /^(конечно|вот|разумеется|хорошо|держите|ниже)[^\n]{0,100}:\s*$/i;
+
+export function softClean(text, { code = false } = {}) {
+  if (code) {
+    return text.replace(/^\s*```[\w+#.-]*\r?\n?/, '').replace(/\r?\n?`{1,3}\s*$/, '');
+  }
+  let out = text
+    .replace(/\*\*/g, '')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s*```[\w-]*\r?\n?/, '');
+  const lines = out.split('\n');
+  if (lines.length > 1 && INTRO_LINE.test(lines[0].trim())) out = lines.slice(1).join('\n');
+  return out.trimStart();
+}
+
+export async function fetchAi(url, payload, onText) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(onText ? { ...payload, stream: true } : payload),
+  });
+  const type = res.headers.get('content-type') || '';
+  if (!res.ok || !res.body || !type.includes('text/event-stream')) {
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let text = '';
+  let final = null;
+  let failure = null;
+  let frame = 0;
+  const flush = () => {
+    frame = 0;
+    onText?.(text);
+  };
+  const handle = (block) => {
+    const line = block.split('\n').find((l) => l.startsWith('data:'));
+    if (!line) return;
+    let event;
+    try {
+      event = JSON.parse(line.slice(5));
+    } catch {
+      return;
+    }
+    if (event.type === 'delta') {
+      text += event.text;
+      if (!frame) frame = requestAnimationFrame(flush);
+    } else if (event.type === 'done') {
+      final = event;
+    } else if (event.type === 'error') {
+      failure = event;
+    }
+  };
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let at;
+      while ((at = buffer.indexOf('\n\n')) >= 0) {
+        handle(buffer.slice(0, at));
+        buffer = buffer.slice(at + 2);
+      }
+    }
+  } finally {
+    if (frame) cancelAnimationFrame(frame);
+  }
+
+  if (final) {
+    const data = { ...final };
+    delete data.type;
+    return { ok: true, status: 200, data };
+  }
+  if (failure) return { ok: false, status: 500, data: { message: failure.message } };
+  throw new Error('Соединение прервалось. Попробуй ещё раз.');
+}

@@ -323,6 +323,7 @@ export function Header() {
     root.addEventListener('pointerenter', markDirty);
     window.addEventListener('scroll', markDirty, { passive: true });
     window.addEventListener('resize', markDirty);
+    root.addEventListener('animationend', markDirty);
     return () => {
       cancelAnimationFrame(raf);
       root.removeEventListener('pointermove', onMove);
@@ -330,11 +331,12 @@ export function Header() {
       root.removeEventListener('pointerenter', markDirty);
       window.removeEventListener('scroll', markDirty);
       window.removeEventListener('resize', markDirty);
+      root.removeEventListener('animationend', markDirty);
     };
   }, []);
 
   return (
-    <div ref={headerRef} className="page-shell page-shell-tight sticky top-0 z-50 flex flex-col gap-1 py-3">
+    <div ref={headerRef} className="page-shell page-shell-tight hdr-intro sticky top-0 z-50 flex flex-col gap-1 py-3">
       {/* Десктопная версия */}
       <div className="hidden md:flex items-center justify-between gap-15 px-5 py-4 glass-bar rounded-3xl">
         <LogoInfo>
