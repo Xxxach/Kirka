@@ -25,6 +25,11 @@ const staticPages = [
     description: 'Конвертация файлов онлайн: PDF, Word и изображения, а также упаковка файлов в ZIP-архив. Бесплатно и без регистрации.',
   },
   {
+    slug: 'chisla-page',
+    title: 'Числа-моменты: калькулятор калорий — Kirka',
+    description: 'Калькулятор калорий онлайн без ввода граммов: выберите продукт и порцию в ложках, чашках или штуках. Бесплатно и без регистрации.',
+  },
+  {
     slug: 'privacy',
     title: 'Политика конфиденциальности — Kirka',
     description: 'Какие данные обрабатывает Kirka, зачем, как долго хранит и как вы можете ими управлять.',
@@ -46,6 +51,7 @@ const toolLinks = [
   { slug: 'photo-page', label: 'Фото: сжатие и обработка' },
   { slug: 'kod-page', label: 'Перевод кода' },
   { slug: 'file-page', label: 'Конвертация файлов' },
+  { slug: 'chisla-page', label: 'Калькулятор калорий' },
 ];
 
 const esc = (value) => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');

@@ -19,6 +19,12 @@ const options = [
   },
 ];
 
+const centerOf = (el) => {
+  if (!el) return null;
+  const rect = el.getBoundingClientRect();
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+};
+
 export function ThemeToggle({ className = '' }) {
   const dark = useDark();
   const activeIndex = dark ? 1 : 0;
@@ -177,7 +183,7 @@ export function ThemeToggle({ className = '' }) {
     setDir(target >= activeIndex ? 1 : -1);
     setSettling(true);
     later(() => setSettling(false), 650);
-    setDark(target === 1);
+    setDark(target === 1, centerOf(itemRefs.current[target]));
   };
 
   const handleClickCapture = (event) => {
@@ -235,7 +241,7 @@ export function ThemeToggle({ className = '' }) {
             ref={(el) => {
               itemRefs.current[index] = el;
             }}
-            onClick={() => setDark(index === 1)}
+            onClick={(event) => setDark(index === 1, centerOf(event.currentTarget))}
             className={`relative z-10 grid h-6 w-9 place-items-center rounded-full transition-colors duration-300 select-none ${
               active ? 'text-[#7A2432]' : 'text-slate-500 hover:text-slate-800'
             }`}

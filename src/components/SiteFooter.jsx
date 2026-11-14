@@ -8,6 +8,7 @@ const toolLinks = [
   { to: '/photo-page', label: 'Фото: сжатие и обработка' },
   { to: '/kod-page', label: 'Перевод кода' },
   { to: '/file-page', label: 'Конвертация файлов' },
+  { to: '/chisla-page', label: 'Калькулятор калорий' },
 ];
 
 const toTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });

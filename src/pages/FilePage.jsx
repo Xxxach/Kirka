@@ -38,7 +38,7 @@ const docFormatOptions = [
 
 const docTierOptions = [
   { value: 'basic', label: 'Упрощённая (только текст)' },
-  { value: 'pro', label: 'Улучшенная (таблицы и фото)' },
+  { value: 'pro', label: 'Улучшенная — скоро', locked: true },
 ];
 
 const barStyles = {
@@ -267,6 +267,7 @@ export function FilePage() {
                 options={docTierOptions}
                 value={docTier}
                 onChange={setDocTier}
+                isOptionDisabled={(option) => option.locked}
                 placeholder="Модель"
               />
               {docTier.value === 'basic' ? (

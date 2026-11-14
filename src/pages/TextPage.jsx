@@ -175,7 +175,7 @@ const lengthOptions = [
 
 const tierOptions = [
   { value: 'basic', label: 'Упрощённая (быстро, бесплатно)' },
-  { value: 'pro', label: 'Улучшенная (точнее, лимит меньше)' },
+  { value: 'pro', label: 'Улучшенная — скоро', locked: true },
 ];
 
 const barStyles = {
@@ -444,11 +444,12 @@ export function TextPage() {
             options={tierOptions}
             value={form.tier}
             onChange={handSelectChange('tier')}
+            isOptionDisabled={(option) => option.locked}
           />
           {form.tier.value === 'basic' && (
             <p className="text-xs text-amber-600 mt-1">
-              Бесплатная модель попроще — иногда путает детали. Для точного
-              результата выбери «Улучшенную».
+              Бесплатная модель попроще — иногда путает детали. Улучшенная
+              модель скоро.
             </p>
           )}
         </div>

@@ -54,7 +54,7 @@ const smallBtn =
 
 const tierOptions = [
   { value: 'basic', label: 'Упрощённая' },
-  { value: 'pro', label: 'Улучшенная' },
+  { value: 'pro', label: 'Улучшенная — скоро', locked: true },
 ];
 
 const fillStyles = {
@@ -248,6 +248,7 @@ export function KodPage() {
           options={tierOptions}
           value={kodForm.tier}
           onChange={handleTierChange}
+          isOptionDisabled={(option) => option.locked}
           placeholder="Модель"
         />
         <button

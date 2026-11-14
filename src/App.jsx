@@ -20,6 +20,8 @@ const loadKodPage = () =>
   import('./pages/KodPage').then((m) => ({ default: m.KodPage }));
 const loadFilePage = () =>
   import('./pages/FilePage').then((m) => ({ default: m.FilePage }));
+const loadChislaPage = () =>
+  import('./pages/ChislaPage').then((m) => ({ default: m.ChislaPage }));
 
 const loadPrivacyPage = () =>
   import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage }));
@@ -29,6 +31,7 @@ const PhotoPage = lazy(loadPhotoPage);
 const PrivacyPage = lazy(loadPrivacyPage);
 const KodPage = lazy(loadKodPage);
 const FilePage = lazy(loadFilePage);
+const ChislaPage = lazy(loadChislaPage);
 
 // Подпапка, в которой лежит сайт (на GitHub Pages — /Kirka). Для корня будет '/'.
 const ROUTER_BASENAME = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
@@ -42,6 +45,7 @@ const PAGE_TITLES = {
   '/photo-page': 'Фото: сжатие и обработка — Kirka',
   '/kod-page': 'Перевод кода между языками — Kirka',
   '/file-page': 'Конвертация файлов: PDF, Word, изображения — Kirka',
+  '/chisla-page': 'Числа-моменты: калькулятор калорий — Kirka',
   '/privacy': 'Политика конфиденциальности — Kirka',
 };
 
@@ -90,6 +94,7 @@ function App() {
       loadPhotoPage();
       loadKodPage();
       loadFilePage();
+      loadChislaPage();
       loadPrivacyPage();
       loadShareDialog();
     });
@@ -140,6 +145,7 @@ function App() {
           <Route path="photo-page" element={<PhotoPage />} />
           <Route path="kod-page" element={<KodPage />} />
           <Route path="file-page" element={<FilePage />} />
+          <Route path="chisla-page" element={<ChislaPage />} />
           <Route path="privacy" element={<PrivacyPage />} />
           <Route path="*" element={<TextRoute />} />
         </Routes>

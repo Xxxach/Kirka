@@ -13,6 +13,7 @@ const tabs = [
   { to: '/photo-page', label: 'Фото-моменты' },
   { to: '/kod-page', label: 'Код-моменты' },
   { to: '/file-page', label: 'Файл-моменты' },
+  { to: '/chisla-page', label: 'Числа-моменты' },
 ];
 
 // Фон активной вкладки рисует «жидкий» индикатор (см. TabsCapsule), тут только цвет текста.
