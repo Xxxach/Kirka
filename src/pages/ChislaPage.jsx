@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { categories, foods, foodById, norm, portionNutrition } from '../data/calories';
 import { FoodIcon } from '../components/FoodIcon';
+import { TilePopover } from '../components/TilePopover';
 
 const round = (value) => Math.round(value);
 
@@ -83,90 +83,76 @@ function MacroRings({ rows }) {
   );
 }
 
-function PortionDialog({ item, onPick, onClose }) {
+function PortionList({ item, expanded, close, onChoose }) {
   const firstRef = useRef(null);
+  const chosen = useRef(false);
 
   useEffect(() => {
-    const onKey = (event) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    firstRef.current?.focus();
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previous;
-    };
-  }, [onClose]);
+    if (!expanded || window.matchMedia?.('(pointer: coarse)').matches) return;
+    firstRef.current?.focus({ preventScroll: true });
+  }, [expanded]);
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-100 flex items-end justify-center bg-slate-900/45 p-3 sm:items-center sm:p-6"
-      style={{ ...FONT, animation: 'kirka-select-fade 180ms ease-out' }}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Сколько: ${item.name}`}
-        className="glass-bar [--glass-a:0.35] w-full max-w-md rounded-3xl p-5"
-      >
-        <div className="mb-3 flex items-center gap-3">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center text-5xl leading-none">
-            <FoodIcon icon={item.emoji} />
-          </span>
-          <div className="min-w-0">
-            <div className="text-xl font-semibold leading-tight text-slate-800">{item.name}</div>
-            <div className="text-sm text-slate-500">
-              {item.kcal} ккал на {per100(item)}
-            </div>
+  const choose = (index) => {
+    if (chosen.current) return;
+    chosen.current = true;
+    onChoose(index);
+    close();
+  };
+
+  return (
+    <>
+      <div className="mb-3 flex items-center gap-3">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center text-5xl leading-none">
+          <FoodIcon icon={item.emoji} />
+        </span>
+        <div className="min-w-0">
+          <div className="text-xl font-semibold leading-tight text-slate-800">{item.name}</div>
+          <div className="text-sm text-slate-500">
+            {item.kcal} ккал на {per100(item)}
           </div>
         </div>
-        <ul className="flex flex-col">
-          {item.portions.map((portion, index) => (
-            <li key={portion.label} className="border-t border-slate-200/60">
-              <button
-                ref={index === 0 ? firstRef : null}
-                type="button"
-                onClick={() => onPick(index)}
-                className="group -mx-2 flex w-[calc(100%+1rem)] items-center justify-between gap-3 rounded-2xl px-2 py-3 text-left transition-colors hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#7A2432]/40"
-              >
-                <span className="min-w-0">
-                  <span className="block text-lg font-medium leading-tight text-slate-800">{portion.label}</span>
-                  <span className="block text-sm text-slate-500">
-                    {portion.grams} {item.unit}
-                  </span>
-                </span>
-                <span className="whitespace-nowrap text-lg font-semibold tabular-nums text-[#7A2432]">
-                  ≈ {round(portionNutrition(item, portion.grams).kcal)} ккал
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-2 w-full rounded-full py-2.5 text-base font-medium text-slate-500 transition-colors hover:text-[#7A2432]"
-        >
-          Отмена
-        </button>
       </div>
-    </div>,
-    document.body,
+      <ul className="flex flex-col">
+        {item.portions.map((portion, index) => (
+          <li key={portion.label} className="border-t border-slate-200/60">
+            <button
+              ref={index === 0 ? firstRef : null}
+              type="button"
+              onClick={() => choose(index)}
+              className="group -mx-2 flex w-[calc(100%+1rem)] items-center justify-between gap-3 rounded-2xl px-2 py-3 text-left transition-colors hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#7A2432]/40"
+            >
+              <span className="min-w-0">
+                <span className="block text-lg font-medium leading-tight text-slate-800">{portion.label}</span>
+                <span className="block text-sm text-slate-500">
+                  {portion.grams} {item.unit}
+                </span>
+              </span>
+              <span className="whitespace-nowrap text-lg font-semibold tabular-nums text-[#7A2432]">
+                ≈ {round(portionNutrition(item, portion.grams).kcal)} ккал
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={close}
+        className="mt-2 w-full rounded-full py-2.5 text-base font-medium text-slate-500 transition-colors hover:text-[#7A2432]"
+      >
+        Отмена
+      </button>
+    </>
   );
 }
 
-function FoodTile({ item, onPick }) {
+function FoodTile({ item, hidden, onPick }) {
   return (
     <li className="min-w-0">
       <button
         type="button"
-        onClick={() => onPick(item)}
-        className="flex h-full min-h-32 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 py-4 text-center shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:border-[#7A2432] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A2432]/40 active:scale-95"
+        onClick={(event) => onPick(item, event.currentTarget)}
+        style={{ opacity: hidden ? 0 : 1 }}
+        className="flex h-full min-h-32 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 py-4 text-center shadow-sm transition-[transform,border-color,box-shadow,opacity] duration-200 hover:border-[#7A2432] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A2432]/40 active:scale-95"
       >
         <span className="flex h-12 items-center justify-center text-[40px] leading-none">
           <FoodIcon icon={item.emoji} />
@@ -203,11 +189,13 @@ export function ChislaPage() {
   const [sub, setSub] = useState('all');
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState(null);
+  const [openedId, setOpenedId] = useState(null);
   const [plate, setPlate] = useState([]);
   const [notice, setNotice] = useState('');
   const plateRef = useRef(null);
 
-  const closeDialog = useCallback(() => setPicked(null), []);
+  const openPortions = (item, el) => setPicked({ item, el, rect: el.getBoundingClientRect() });
+  const onPopoverClosed = useCallback(() => setPicked(null), []);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -262,7 +250,6 @@ export function ChislaPage() {
       return [...prev, { foodId: item.id, index, count: 1 }];
     });
     setNotice(`Добавлено: ${item.name}, ${item.portions[index].label.toLowerCase()}`);
-    setPicked(null);
   };
 
   const changeCount = (row, delta) => {
@@ -411,7 +398,7 @@ export function ChislaPage() {
                   )}
                   <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
                     {group.items.map((item) => (
-                      <FoodTile key={item.id} item={item} onPick={setPicked} />
+                      <FoodTile key={item.id} item={item} hidden={openedId === item.id} onPick={openPortions} />
                     ))}
                   </ul>
                 </div>
@@ -543,7 +530,20 @@ export function ChislaPage() {
         </div>
       )}
 
-      {picked && <PortionDialog item={picked} onPick={(index) => addToPlate(picked, index)} onClose={closeDialog} />}
+      {picked && (
+        <TilePopover
+          anchor={picked.rect}
+          label={`Сколько: ${picked.item.name}`}
+          style={FONT}
+          returnFocusTo={picked.el}
+          onClosed={onPopoverClosed}
+          onExpandedChange={(expanded) => setOpenedId(expanded ? picked.item.id : null)}
+        >
+          {({ close, expanded }) => (
+            <PortionList item={picked.item} expanded={expanded} close={close} onChoose={(index) => addToPlate(picked.item, index)} />
+          )}
+        </TilePopover>
+      )}
     </main>
   );
 }
