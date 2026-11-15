@@ -4,14 +4,81 @@ import { categories, foods, foodById, norm, portionNutrition } from '../data/cal
 import { FoodIcon } from '../components/FoodIcon';
 
 const round = (value) => Math.round(value);
-const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
+
+// Системный шрифт Apple: на iPhone и Mac это настоящий SF Pro, на остальных устройствах ближайший системный.
+const FONT = {
+  fontFamily:
+    '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  letterSpacing: '-0.01em',
+};
+
+const DAILY_REFERENCE = 2000;
 const per100 = (item) => (item.unit === 'мл' ? '100 мл' : '100 г');
+
+// Цвета колец как в «Активности» на iPhone: видны и на светлой, и на тёмной теме
+const RING = {
+  p: { color: '#FF375F', label: 'Белки' },
+  f: { color: '#FF9F0A', label: 'Жиры' },
+  c: { color: '#32ADE6', label: 'Углеводы' },
+};
 
 function SearchIcon() {
   return (
     <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
       <circle cx="9" cy="9" r="5.5" />
       <path d="m13.2 13.2 3.8 3.8" />
+    </svg>
+  );
+}
+
+function StepIcon({ plus }) {
+  return (
+    <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+      <path d={plus ? 'M4 10h12M10 4v12' : 'M4 10h12'} />
+    </svg>
+  );
+}
+
+function MacroRings({ rows }) {
+  const size = 132;
+  const mid = size / 2;
+  const radii = [58, 44, 30];
+  const stroke = 11;
+  return (
+    <svg
+      viewBox={`0 0 ${size} ${size}`}
+      width={size}
+      height={size}
+      role="img"
+      aria-label="Доли белков, жиров и углеводов в калориях"
+      className="shrink-0"
+    >
+      {rows.map((row, index) => {
+        const r = radii[index];
+        const length = 2 * Math.PI * r;
+        const pct = Math.min(100, Math.max(0, row.pct));
+        return (
+          <g key={row.key} transform={`rotate(-90 ${mid} ${mid})`}>
+            <circle cx={mid} cy={mid} r={r} fill="none" stroke="rgba(120,120,128,0.2)" strokeWidth={stroke} />
+            {pct > 0.5 && (
+              <circle
+                cx={mid}
+                cy={mid}
+                r={r}
+                fill="none"
+                stroke={RING[row.key].color}
+                strokeWidth={stroke}
+                strokeLinecap="round"
+                strokeDasharray={`${(length * pct) / 100} ${length}`}
+                style={{ transition: 'stroke-dasharray 600ms cubic-bezier(0.32, 0.72, 0, 1)' }}
+              />
+            )}
+          </g>
+        );
+      })}
+      <text x={mid} y={mid + 4} textAnchor="middle" fontSize="12" fontWeight="700" fill="currentColor" className="text-slate-500">
+        БЖУ
+      </text>
     </svg>
   );
 }
@@ -36,7 +103,7 @@ function PortionDialog({ item, onPick, onClose }) {
   return createPortal(
     <div
       className="fixed inset-0 z-100 flex items-end justify-center bg-slate-900/45 p-3 sm:items-center sm:p-6"
-      style={{ animation: 'kirka-select-fade 180ms ease-out' }}
+      style={{ ...FONT, animation: 'kirka-select-fade 180ms ease-out' }}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -73,7 +140,7 @@ function PortionDialog({ item, onPick, onClose }) {
                     {portion.grams} {item.unit}
                   </span>
                 </span>
-                <span className="whitespace-nowrap text-lg font-semibold text-[#7A2432]" style={SERIF}>
+                <span className="whitespace-nowrap text-lg font-semibold tabular-nums text-[#7A2432]">
                   ≈ {round(portionNutrition(item, portion.grams).kcal)} ккал
                 </span>
               </button>
@@ -93,28 +160,20 @@ function PortionDialog({ item, onPick, onClose }) {
   );
 }
 
-function FoodRow({ item, onPick }) {
+function FoodTile({ item, onPick }) {
   return (
-    <li className="border-b border-slate-200/60">
+    <li className="min-w-0">
       <button
         type="button"
         onClick={() => onPick(item)}
-        className="group -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#7A2432]/40"
+        className="flex h-full min-h-32 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 py-4 text-center shadow-sm transition-[transform,border-color,box-shadow] duration-200 hover:border-[#7A2432] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A2432]/40 active:scale-95"
       >
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center text-[30px] leading-none">
+        <span className="flex h-12 items-center justify-center text-[40px] leading-none">
           <FoodIcon icon={item.emoji} />
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[17px] font-medium leading-tight text-slate-800">{item.name}</span>
-          <span className="block text-sm text-slate-500">
-            {item.kcal} ккал · {per100(item)}
-          </span>
-        </span>
-        <span
-          aria-hidden="true"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#7A2432]/25 text-xl leading-none text-[#7A2432] transition-colors group-hover:bg-[#7A2432] group-hover:text-white"
-        >
-          +
+        <span className="text-[15px] font-semibold leading-tight text-slate-800">{item.name}</span>
+        <span className="text-xs text-slate-500">
+          {item.kcal} ккал · {per100(item)}
         </span>
       </button>
     </li>
@@ -123,17 +182,17 @@ function FoodRow({ item, onPick }) {
 
 function Stepper({ count, onMinus, onPlus }) {
   const btn =
-    'flex h-9 w-9 items-center justify-center text-xl leading-none text-slate-700 transition-colors hover:text-[#7A2432]';
+    'flex h-10 w-10 items-center justify-center rounded-full text-[#7A2432] transition-[transform,background-color] duration-150 hover:bg-white/70 active:scale-90';
   return (
-    <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-white/70">
+    <div className="inline-flex h-11 w-fit items-center rounded-full bg-slate-200/50 p-0.5">
       <button type="button" aria-label="Меньше" onClick={onMinus} className={btn}>
-        −
+        <StepIcon />
       </button>
-      <span className="min-w-7 text-center text-base font-semibold tabular-nums text-slate-800" aria-live="polite">
+      <span className="min-w-9 text-center text-lg font-semibold leading-none tabular-nums text-slate-800" aria-live="polite">
         {count}
       </span>
       <button type="button" aria-label="Больше" onClick={onPlus} className={btn}>
-        +
+        <StepIcon plus />
       </button>
     </div>
   );
@@ -233,10 +292,14 @@ export function ChislaPage() {
   const macroKcal = totals.p * 4 + totals.f * 9 + totals.c * 4;
   const share = (value) => (macroKcal > 0 ? (value / macroKcal) * 100 : 0);
   const macros = [
-    { key: 'p', label: 'Белки', grams: totals.p, width: share(totals.p * 4), dot: 'bg-[#7A2432]' },
-    { key: 'f', label: 'Жиры', grams: totals.f, width: share(totals.f * 9), dot: 'bg-slate-400' },
-    { key: 'c', label: 'Углеводы', grams: totals.c, width: share(totals.c * 4), dot: 'bg-slate-200' },
+    { key: 'p', grams: totals.p, pct: share(totals.p * 4) },
+    { key: 'f', grams: totals.f, pct: share(totals.f * 9) },
+    { key: 'c', grams: totals.c, pct: share(totals.c * 4) },
   ];
+
+  const dayPct = (totals.kcal / DAILY_REFERENCE) * 100;
+  const topEntry = rows.length > 1 ? rows.reduce((best, entry) => (entry.nutrition.kcal > best.nutrition.kcal ? entry : best)) : null;
+  const topPct = topEntry && totals.kcal > 0 ? round((topEntry.nutrition.kcal / totals.kcal) * 100) : 0;
 
   const scrollToPlate = () => plateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -250,9 +313,11 @@ export function ChislaPage() {
         ? 'border-[#7A2432] font-semibold text-[#7A2432]'
         : 'border-transparent text-slate-500 hover:text-slate-800'
     }`;
+  const scrollRow =
+    'flex overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-sm:-mx-4 max-sm:px-4 max-sm:[mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%_-_2.5rem),transparent)] sm:flex-wrap sm:overflow-visible sm:pb-0';
 
   return (
-    <main className={`page-shell flex flex-col gap-5 py-1 ${rows.length > 0 ? 'pb-24 lg:pb-1' : ''}`}>
+    <main style={FONT} className={`page-shell flex flex-col gap-5 py-1 ${rows.length > 0 ? 'pb-24 lg:pb-1' : ''}`}>
       <div className="flex flex-col gap-3">
         <div className="inline-flex w-fit rounded-full bg-slate-200/50 p-1">
           <button
@@ -279,7 +344,7 @@ export function ChislaPage() {
         {notice}
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
         <section className="glass-bar flex min-w-0 flex-col gap-4 rounded-3xl p-4 sm:p-5">
           <label className="relative block">
             <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
@@ -296,7 +361,7 @@ export function ChislaPage() {
           </label>
 
           {!query && (
-            <div className="flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-sm:-mx-4 max-sm:px-4 max-sm:[mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%_-_2.5rem),transparent)] sm:flex-wrap sm:overflow-visible sm:pb-0">
+            <div className={`${scrollRow} gap-1`}>
               {categories.map((entry) => (
                 <button
                   key={entry.id}
@@ -312,7 +377,7 @@ export function ChislaPage() {
           )}
 
           {!query && currentCategory?.subs && (
-            <div className="flex gap-x-5 gap-y-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-sm:-mx-4 max-sm:px-4 max-sm:[mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%_-_2.5rem),transparent)] sm:flex-wrap sm:overflow-visible sm:pb-0" aria-label="Подкатегории">
+            <div className={`${scrollRow} gap-x-5 gap-y-1`} aria-label="Подкатегории">
               <button type="button" aria-pressed={sub === 'all'} onClick={(event) => chooseSub(event, 'all')} className={subClass(sub === 'all')}>
                 Все
               </button>
@@ -339,14 +404,14 @@ export function ChislaPage() {
               {groups.map((group) => (
                 <div key={group.id}>
                   {group.label && (
-                    <h3 className="mb-1 mt-3 flex items-baseline gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <h3 className="mb-2 mt-3 flex items-baseline gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                       {group.label}
                       <span className="font-normal normal-case tracking-normal">{group.items.length}</span>
                     </h3>
                   )}
-                  <ul className="grid grid-cols-1 gap-x-8 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                  <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
                     {group.items.map((item) => (
-                      <FoodRow key={item.id} item={item} onPick={setPicked} />
+                      <FoodTile key={item.id} item={item} onPick={setPicked} />
                     ))}
                   </ul>
                 </div>
@@ -355,7 +420,7 @@ export function ChislaPage() {
           )}
         </section>
 
-        <div ref={plateRef} className="scroll-mt-32 lg:sticky lg:top-32">
+        <div ref={plateRef} className="scroll-mt-32 lg:sticky lg:top-32 lg:-m-2 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:p-2 lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
           <aside className="glass-bar flex flex-col gap-4 rounded-3xl p-5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-xl font-semibold text-slate-800">Моя тарелка</h2>
@@ -373,25 +438,25 @@ export function ChislaPage() {
             {rows.length === 0 ? (
               <p className="text-base text-slate-500">Пока пусто. Выбери продукт и порцию, он появится здесь.</p>
             ) : (
-              <ul className="flex flex-col">
+              <ul className="flex flex-col gap-2">
                 {rows.map(({ row, item, portion, nutrition }) => (
                   <li
                     key={`${row.foodId}-${row.index}`}
-                    className="flex flex-col gap-2 border-t border-slate-200/60 py-3 first:border-t-0 first:pt-0"
+                    className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-2.5">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center text-2xl leading-none">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[28px] leading-none">
                           <FoodIcon icon={item.emoji} />
                         </span>
                         <div className="min-w-0">
-                          <div className="text-base font-medium leading-tight text-slate-800">{item.name}</div>
+                          <div className="text-base font-semibold leading-tight text-slate-800">{item.name}</div>
                           <div className="text-sm text-slate-500">
                             {portion.label}, {portion.grams} {item.unit}
                           </div>
                         </div>
                       </div>
-                      <div className="whitespace-nowrap text-lg font-semibold text-slate-800" style={SERIF}>
+                      <div className="whitespace-nowrap text-lg font-bold tabular-nums text-slate-800">
                         ≈ {round(nutrition.kcal)}
                       </div>
                     </div>
@@ -401,30 +466,51 @@ export function ChislaPage() {
               </ul>
             )}
 
-            <div className="border-t border-slate-200/60 pt-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="text-sm font-medium text-slate-500">Всего</div>
-              <div className="flex items-baseline gap-2 text-[#7A2432]" style={SERIF}>
-                <span className="text-6xl font-semibold leading-none tabular-nums">≈ {round(totals.kcal)}</span>
-                <span className="text-xl">ккал</span>
+              <div className="flex items-baseline gap-2 text-[#7A2432]">
+                <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">≈ {round(totals.kcal)}</span>
+                <span className="text-xl font-semibold">ккал</span>
               </div>
 
-              <div className="mt-4 flex h-2 w-full overflow-hidden rounded-full bg-slate-200/50" aria-hidden="true">
-                {macros.map((entry) => (
-                  <div key={entry.key} className={entry.dot} style={{ width: `${entry.width}%` }} />
-                ))}
+              <div className="mt-4">
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="text-slate-500">Ориентир: {DAILY_REFERENCE} ккал в день</span>
+                  <span className="font-semibold tabular-nums text-slate-800">{round(dayPct)}%</span>
+                </div>
+                <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-200/50" aria-hidden="true">
+                  <div
+                    className="h-full rounded-full bg-[#7A2432]"
+                    style={{ width: `${Math.min(100, dayPct)}%`, transition: 'width 500ms cubic-bezier(0.32, 0.72, 0, 1)' }}
+                  />
+                </div>
               </div>
-              <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
+            </div>
+
+            <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <MacroRings rows={macros} />
+              <dl className="flex min-w-0 flex-1 flex-col gap-2.5">
                 {macros.map((entry) => (
-                  <div key={entry.key}>
-                    <dt className="flex items-center gap-1.5 text-slate-500">
-                      <span className={`h-2 w-2 rounded-full ${entry.dot}`} aria-hidden="true" />
-                      {entry.label}
-                    </dt>
-                    <dd className="text-base font-semibold text-slate-800">{round(entry.grams)} г</dd>
+                  <div key={entry.key} className="flex items-center gap-2.5">
+                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: RING[entry.key].color }} aria-hidden="true" />
+                    <div className="min-w-0">
+                      <dt className="text-sm leading-tight text-slate-500">{RING[entry.key].label}</dt>
+                      <dd className="text-base font-bold leading-tight tabular-nums text-slate-800">
+                        {round(entry.grams)} г
+                        <span className="ml-1.5 text-sm font-medium text-slate-500">{round(entry.pct)}%</span>
+                      </dd>
+                    </div>
                   </div>
                 ))}
               </dl>
             </div>
+
+            {topEntry && topPct > 0 && (
+              <p className="rounded-2xl bg-[#7A2432]/10 px-4 py-3 text-sm text-slate-700">
+                Больше всего калорий даёт <span className="font-semibold">{topEntry.item.name}</span>:{' '}
+                {topPct}% тарелки.
+              </p>
+            )}
 
             <p className="text-sm text-slate-400">
               Значения примерные: порции и состав продуктов бывают разными. Это не медицинская рекомендация.
@@ -441,9 +527,9 @@ export function ChislaPage() {
           <div className="glass-bar [--glass-a:0.3] flex items-center justify-between gap-3 rounded-full py-2 pl-5 pr-2">
             <div className="min-w-0">
               <div className="truncate text-xs text-slate-500">{notice || `Тарелка: ${rows.length}`}</div>
-              <div className="text-[#7A2432]" style={SERIF}>
-                <span className="text-2xl font-semibold tabular-nums">≈ {round(totals.kcal)}</span>
-                <span className="ml-1 text-base">ккал</span>
+              <div className="text-[#7A2432]">
+                <span className="text-2xl font-bold tabular-nums">≈ {round(totals.kcal)}</span>
+                <span className="ml-1 text-base font-semibold">ккал</span>
               </div>
             </div>
             <button
