@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { categories, foods, foodById, norm, portionNutrition } from '../data/calories';
 import { FoodIcon } from '../components/FoodIcon';
 import { TilePopover } from '../components/TilePopover';
+import { LiquidMenu } from '../components/LiquidMenu';
 
 const round = (value) => Math.round(value);
 
@@ -13,6 +14,22 @@ const FONT = {
 };
 
 const DAILY_REFERENCE = 2000;
+
+// Колонки меню категорий на десктопе
+const CATEGORY_GROUPS = [
+  { label: 'Каждый день', ids: ['hot', 'drinks', 'bread'] },
+  { label: 'Основа', ids: ['grains', 'meat', 'dairy'] },
+  { label: 'Свежее и добавки', ids: ['fat', 'veg', 'fruit'] },
+  { label: 'Готовое и сладкое', ids: ['sweet', 'dish'] },
+];
+
+const DESKTOP_QUERY = '(min-width: 768px)';
+const subscribeDesktop = (notify) => {
+  const mq = window.matchMedia?.(DESKTOP_QUERY);
+  mq?.addEventListener?.('change', notify);
+  return () => mq?.removeEventListener?.('change', notify);
+};
+const getDesktop = () => Boolean(window.matchMedia?.(DESKTOP_QUERY).matches);
 const per100 = (item) => (item.unit === 'мл' ? '100 мл' : '100 г');
 
 // Цвета колец как в «Активности» на iPhone: видны и на светлой, и на тёмной теме
@@ -193,6 +210,7 @@ export function ChislaPage() {
   const [plate, setPlate] = useState([]);
   const [notice, setNotice] = useState('');
   const plateRef = useRef(null);
+  const isDesktop = useSyncExternalStore(subscribeDesktop, getDesktop, () => false);
 
   const openPortions = (item, el) => setPicked({ item, el, rect: el.getBoundingClientRect() });
   const onPopoverClosed = useCallback(() => setPicked(null), []);
@@ -230,10 +248,9 @@ export function ChislaPage() {
   const reveal = (event) =>
     event.currentTarget.scrollIntoView?.({ inline: 'center', block: 'nearest', behavior: 'smooth' });
 
-  const chooseCategory = (event, id) => {
+  const chooseCategory = (id) => {
     setCategory(id);
     setSub('all');
-    reveal(event);
   };
 
   const chooseSub = (event, id) => {
@@ -347,14 +364,32 @@ export function ChislaPage() {
             />
           </label>
 
-          {!query && (
+          {!query && isDesktop && (
+            <div className="flex flex-col gap-3">
+              <div className="px-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Что считаем</div>
+              <LiquidMenu
+                label="Категории"
+                value={category}
+                onChange={chooseCategory}
+                groups={CATEGORY_GROUPS.map((group) => ({
+                  label: group.label,
+                  options: group.ids.map((id) => ({ value: id, label: categories.find((entry) => entry.id === id).label })),
+                }))}
+              />
+            </div>
+          )}
+
+          {!query && !isDesktop && (
             <div className={`${scrollRow} gap-1`}>
               {categories.map((entry) => (
                 <button
                   key={entry.id}
                   type="button"
                   aria-pressed={category === entry.id}
-                  onClick={(event) => chooseCategory(event, entry.id)}
+                  onClick={(event) => {
+                    chooseCategory(entry.id);
+                    reveal(event);
+                  }}
                   className={catClass(category === entry.id)}
                 >
                   {entry.label}
@@ -407,101 +442,103 @@ export function ChislaPage() {
           )}
         </section>
 
-        <div ref={plateRef} className="scroll-mt-32 lg:sticky lg:top-32 lg:-m-2 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:p-2 lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
-          <aside className="glass-bar flex flex-col gap-4 rounded-3xl p-5">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-xl font-semibold text-slate-800">Моя тарелка</h2>
-              {rows.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setPlate([])}
-                  className="rounded-full px-3 py-1 text-sm font-medium text-slate-500 transition-colors hover:text-[#7A2432]"
-                >
-                  Очистить
-                </button>
-              )}
-            </div>
-
-            {rows.length === 0 ? (
-              <p className="text-base text-slate-500">Пока пусто. Выбери продукт и порцию, он появится здесь.</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {rows.map(({ row, item, portion, nutrition }) => (
-                  <li
-                    key={`${row.foodId}-${row.index}`}
-                    className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+        <div ref={plateRef} className="scroll-mt-32 lg:sticky lg:top-32">
+          <aside className="glass-bar rounded-3xl lg:max-h-[calc(100vh-9rem)] lg:overflow-hidden">
+            <div className="flex flex-col gap-4 p-5 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-xl font-semibold text-slate-800">Моя тарелка</h2>
+                {rows.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPlate([])}
+                    className="rounded-full px-3 py-1 text-sm font-medium text-slate-500 transition-colors hover:text-[#7A2432]"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[28px] leading-none">
-                          <FoodIcon icon={item.emoji} />
-                        </span>
-                        <div className="min-w-0">
-                          <div className="text-base font-semibold leading-tight text-slate-800">{item.name}</div>
-                          <div className="text-sm text-slate-500">
-                            {portion.label}, {portion.grams} {item.unit}
+                    Очистить
+                  </button>
+                )}
+              </div>
+
+              {rows.length === 0 ? (
+                <p className="text-base text-slate-500">Пока пусто. Выбери продукт и порцию, он появится здесь.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {rows.map(({ row, item, portion, nutrition }) => (
+                    <li
+                      key={`${row.foodId}-${row.index}`}
+                      className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[28px] leading-none">
+                            <FoodIcon icon={item.emoji} />
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-base font-semibold leading-tight text-slate-800">{item.name}</div>
+                            <div className="text-sm text-slate-500">
+                              {portion.label}, {portion.grams} {item.unit}
+                            </div>
                           </div>
                         </div>
+                        <div className="whitespace-nowrap text-lg font-bold tabular-nums text-slate-800">
+                          ≈ {round(nutrition.kcal)}
+                        </div>
                       </div>
-                      <div className="whitespace-nowrap text-lg font-bold tabular-nums text-slate-800">
-                        ≈ {round(nutrition.kcal)}
-                      </div>
-                    </div>
-                    <Stepper count={row.count} onMinus={() => changeCount(row, -1)} onPlus={() => changeCount(row, 1)} />
-                  </li>
-                ))}
-              </ul>
-            )}
+                      <Stepper count={row.count} onMinus={() => changeCount(row, -1)} onPlus={() => changeCount(row, 1)} />
+                    </li>
+                  ))}
+                </ul>
+              )}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="text-sm font-medium text-slate-500">Всего</div>
-              <div className="flex items-baseline gap-2 text-[#7A2432]">
-                <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">≈ {round(totals.kcal)}</span>
-                <span className="text-xl font-semibold">ккал</span>
-              </div>
-
-              <div className="mt-4">
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-slate-500">Ориентир: {DAILY_REFERENCE} ккал в день</span>
-                  <span className="font-semibold tabular-nums text-slate-800">{round(dayPct)}%</span>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="text-sm font-medium text-slate-500">Всего</div>
+                <div className="flex items-baseline gap-2 text-[#7A2432]">
+                  <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">≈ {round(totals.kcal)}</span>
+                  <span className="text-xl font-semibold">ккал</span>
                 </div>
-                <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-200/50" aria-hidden="true">
-                  <div
-                    className="h-full rounded-full bg-[#7A2432]"
-                    style={{ width: `${Math.min(100, dayPct)}%`, transition: 'width 500ms cubic-bezier(0.32, 0.72, 0, 1)' }}
-                  />
-                </div>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <MacroRings rows={macros} />
-              <dl className="flex min-w-0 flex-1 flex-col gap-2.5">
-                {macros.map((entry) => (
-                  <div key={entry.key} className="flex items-center gap-2.5">
-                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: RING[entry.key].color }} aria-hidden="true" />
-                    <div className="min-w-0">
-                      <dt className="text-sm leading-tight text-slate-500">{RING[entry.key].label}</dt>
-                      <dd className="text-base font-bold leading-tight tabular-nums text-slate-800">
-                        {round(entry.grams)} г
-                        <span className="ml-1.5 text-sm font-medium text-slate-500">{round(entry.pct)}%</span>
-                      </dd>
-                    </div>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="text-slate-500">Ориентир: {DAILY_REFERENCE} ккал в день</span>
+                    <span className="font-semibold tabular-nums text-slate-800">{round(dayPct)}%</span>
                   </div>
-                ))}
-              </dl>
-            </div>
+                  <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-200/50" aria-hidden="true">
+                    <div
+                      className="h-full rounded-full bg-[#7A2432]"
+                      style={{ width: `${Math.min(100, dayPct)}%`, transition: 'width 500ms cubic-bezier(0.32, 0.72, 0, 1)' }}
+                    />
+                  </div>
+                </div>
+              </div>
 
-            {topEntry && topPct > 0 && (
-              <p className="rounded-2xl bg-[#7A2432]/10 px-4 py-3 text-sm text-slate-700">
-                Больше всего калорий даёт <span className="font-semibold">{topEntry.item.name}</span>:{' '}
-                {topPct}% тарелки.
+              <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <MacroRings rows={macros} />
+                <dl className="flex min-w-0 flex-1 flex-col gap-2.5">
+                  {macros.map((entry) => (
+                    <div key={entry.key} className="flex items-center gap-2.5">
+                      <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: RING[entry.key].color }} aria-hidden="true" />
+                      <div className="min-w-0">
+                        <dt className="text-sm leading-tight text-slate-500">{RING[entry.key].label}</dt>
+                        <dd className="text-base font-bold leading-tight tabular-nums text-slate-800">
+                          {round(entry.grams)} г
+                          <span className="ml-1.5 text-sm font-medium text-slate-500">{round(entry.pct)}%</span>
+                        </dd>
+                      </div>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+
+              {topEntry && topPct > 0 && (
+                <p className="rounded-2xl bg-[#7A2432]/10 px-4 py-3 text-sm text-slate-700">
+                  Больше всего калорий даёт <span className="font-semibold">{topEntry.item.name}</span>:{' '}
+                  {topPct}% тарелки.
+                </p>
+              )}
+
+              <p className="text-sm text-slate-400">
+                Значения примерные: порции и состав продуктов бывают разными. Это не медицинская рекомендация.
               </p>
-            )}
-
-            <p className="text-sm text-slate-400">
-              Значения примерные: порции и состав продуктов бывают разными. Это не медицинская рекомендация.
-            </p>
+            </div>
           </aside>
         </div>
       </div>
