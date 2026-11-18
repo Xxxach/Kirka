@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { categories, foods, foodById, norm, portionNutrition } from '../data/calories';
+import { kcalRange, resolveFood } from '../data/foodHelpers';
 import { FoodIcon } from '../components/FoodIcon';
 import { TilePopover } from '../components/TilePopover';
 import { LiquidMenu } from '../components/LiquidMenu';
@@ -100,9 +101,137 @@ function MacroRings({ rows }) {
   );
 }
 
+function LactoseSwitch({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between gap-3 rounded-2xl py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A2432]/40"
+    >
+      <span className="text-base font-medium text-slate-800">Без лактозы</span>
+      <span
+        className={`relative h-8 w-[52px] shrink-0 rounded-full transition-colors duration-200 ${checked ? 'bg-[#7A2432]' : ''}`}
+        style={checked ? undefined : { background: 'rgba(120,120,128,0.32)' }}
+        aria-hidden="true"
+      >
+        <span
+          className="absolute left-0.5 top-0.5 h-7 w-7 rounded-full bg-white shadow transition-transform duration-200"
+          style={{ transform: checked ? 'translateX(20px)' : 'translateX(0)' }}
+        />
+      </span>
+    </button>
+  );
+}
+
+// Подсказки по балансу: простая схема по долям калорий (ориентиры для одной тарелки, не норма для врача)
+const ADVICE_MIN_KCAL = 150;
+const PROTEIN_IDS = ['chicken_breast', 'egg_boiled', 'cottage', 'tuna', 'turkey', 'pink_salmon'];
+const LIGHT_IDS = ['cucumber', 'tomato', 'cabbage', 'apple', 'buckwheat', 'chicken_breast'];
+const CARB_IDS = ['buckwheat', 'rice_brown', 'banana', 'apple', 'lentil'];
+
+function getAdvice({ pPct, fPct, cPct, sweetPct, onPlate }) {
+  const fresh = (ids) => ids.filter((id) => !onPlate.has(id) && foodById[id]).slice(0, 3);
+  if (sweetPct >= 40) {
+    return {
+      tint: RING.f.color,
+      label: 'Для баланса',
+      title: 'Многовато сладкого',
+      text: 'Добавь овощи и что-то белковое: станет сытнее и спокойнее по сахару.',
+      ids: fresh(['cucumber', 'chicken_breast', 'egg_boiled', 'cottage']),
+    };
+  }
+  if (pPct < 15) {
+    return {
+      tint: RING.p.color,
+      label: 'Для баланса',
+      title: 'Не хватает белка',
+      text: 'Добавь белковое: мясо, рыбу, яйца или творог.',
+      ids: fresh(PROTEIN_IDS),
+    };
+  }
+  if (fPct > 38) {
+    return {
+      tint: RING.f.color,
+      label: 'Для баланса',
+      title: 'Жирновато',
+      text: 'Разбавь овощами, крупой или нежирным белком.',
+      ids: fresh(LIGHT_IDS),
+    };
+  }
+  if (cPct > 65) {
+    return {
+      tint: RING.c.color,
+      label: 'Для баланса',
+      title: 'Много углеводов',
+      text: 'Добавь белок, а в следующий раз возьми поменьше сладкого и выпечки.',
+      ids: fresh(PROTEIN_IDS),
+    };
+  }
+  if (cPct < 35) {
+    return {
+      tint: RING.c.color,
+      label: 'Для баланса',
+      title: 'Не хватает углеводов',
+      text: 'Добавь крупу, фрукты или бобовые: это даст энергию.',
+      ids: fresh(CARB_IDS),
+    };
+  }
+  return {
+    tint: '#30D158',
+    label: 'Для баланса',
+    title: 'Баланс в норме',
+    text: 'Белки, жиры и углеводы примерно в ориентире: 15–35 / 20–38 / 35–65% калорий.',
+    ids: [],
+  };
+}
+
+function FlameIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+      <path d="M12 2.5c.9 3.1 5.2 5.2 5.2 9.9A5.2 5.2 0 0 1 12 17.7a5.2 5.2 0 0 1-5.2-5.3c0-1.9.9-3.4 2-4.5.2 1.3.9 2.1 1.8 2.4C10.2 8.3 10.7 5.2 12 2.5z" />
+    </svg>
+  );
+}
+
+function BalanceIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="3.8" />
+    </svg>
+  );
+}
+
+// Карточка-подсказка в стиле «Здоровья» на iPhone: цветная плитка с иконкой, подпись и крупный заголовок
+function InsightCard({ tint, icon, label, title, children }) {
+  return (
+    <div className="flex items-start gap-3.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <span
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-white"
+        style={{ background: `linear-gradient(160deg, ${tint}, ${tint}CC)`, boxShadow: `0 6px 14px -6px ${tint}` }}
+        aria-hidden="true"
+      >
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tint }}>
+          {label}
+        </div>
+        <div className="mt-0.5 text-lg font-semibold leading-snug text-slate-800">{title}</div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function PortionList({ item, expanded, close, onChoose }) {
   const firstRef = useRef(null);
   const chosen = useRef(false);
+  const [variant, setVariant] = useState(item.variants?.defaultId ?? null);
+  const [lf, setLf] = useState(false);
+  const current = resolveFood(item, { variant, lf });
 
   useEffect(() => {
     if (!expanded || window.matchMedia?.('(pointer: coarse)').matches) return;
@@ -112,7 +241,7 @@ function PortionList({ item, expanded, close, onChoose }) {
   const choose = (index) => {
     if (chosen.current) return;
     chosen.current = true;
-    onChoose(index);
+    onChoose(index, { variant: current.variantId, lf: current.lf });
     close();
   };
 
@@ -123,12 +252,41 @@ function PortionList({ item, expanded, close, onChoose }) {
           <FoodIcon icon={item.emoji} />
         </span>
         <div className="min-w-0">
-          <div className="text-xl font-semibold leading-tight text-slate-800">{item.name}</div>
+          <div className="text-xl font-semibold leading-tight text-slate-800">{current.displayName}</div>
           <div className="text-sm text-slate-500">
-            {item.kcal} ккал на {per100(item)}
+            {current.kcal} ккал на {per100(item)}
           </div>
         </div>
       </div>
+
+      {item.variants && (
+        <div className="mb-2">
+          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{item.variants.label}</div>
+          <div className="flex flex-wrap gap-1.5">
+            {item.variants.options.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                aria-pressed={variant === option.id}
+                onClick={() => setVariant(option.id)}
+                className={`rounded-full px-3.5 py-1.5 text-[15px] font-medium transition-colors duration-200 ${
+                  variant === option.id ? 'gel bg-[#7A2432] text-white' : 'bg-slate-200/50 text-slate-600 hover:bg-white/70'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {item.lactose && (
+        <div className="mb-1">
+          <LactoseSwitch checked={lf} onChange={setLf} />
+          {lf && <p className="text-sm text-slate-500">Калорийность почти не меняется.</p>}
+        </div>
+      )}
+
       <ul className="flex flex-col">
         {item.portions.map((portion, index) => (
           <li key={portion.label} className="border-t border-slate-200/60">
@@ -145,7 +303,7 @@ function PortionList({ item, expanded, close, onChoose }) {
                 </span>
               </span>
               <span className="whitespace-nowrap text-lg font-semibold tabular-nums text-[#7A2432]">
-                ≈ {round(portionNutrition(item, portion.grams).kcal)} ккал
+                ≈ {round(portionNutrition(current, portion.grams).kcal)} ккал
               </span>
             </button>
           </li>
@@ -162,6 +320,11 @@ function PortionList({ item, expanded, close, onChoose }) {
   );
 }
 
+const kcalLabel = (item) => {
+  const [low, high] = kcalRange(item);
+  return low === high ? `${low}` : `${low}–${high}`;
+};
+
 function FoodTile({ item, hidden, onPick }) {
   return (
     <li className="min-w-0">
@@ -176,7 +339,7 @@ function FoodTile({ item, hidden, onPick }) {
         </span>
         <span className="text-[15px] font-semibold leading-tight text-slate-800">{item.name}</span>
         <span className="text-xs text-slate-500">
-          {item.kcal} ккал · {per100(item)}
+          {kcalLabel(item)} ккал · {per100(item)}
         </span>
       </button>
     </li>
@@ -258,15 +421,20 @@ export function ChislaPage() {
     reveal(event);
   };
 
-  const addToPlate = (item, index) => {
+  const addToPlate = (item, index, selection = {}) => {
+    const variant = selection.variant ?? null;
+    const lf = Boolean(selection.lf);
     setPlate((prev) => {
-      const found = prev.find((row) => row.foodId === item.id && row.index === index);
+      const found = prev.find(
+        (row) => row.foodId === item.id && row.index === index && row.variant === variant && row.lf === lf,
+      );
       if (found) {
         return prev.map((row) => (row === found ? { ...row, count: row.count + 1 } : row));
       }
-      return [...prev, { foodId: item.id, index, count: 1 }];
+      return [...prev, { foodId: item.id, index, variant, lf, count: 1 }];
     });
-    setNotice(`Добавлено: ${item.name}, ${item.portions[index].label.toLowerCase()}`);
+    const { displayName } = resolveFood(item, { variant, lf });
+    setNotice(`Добавлено: ${displayName}, ${item.portions[index].label.toLowerCase()}`);
   };
 
   const changeCount = (row, delta) => {
@@ -278,7 +446,7 @@ export function ChislaPage() {
   };
 
   const rows = plate.map((row) => {
-    const item = foodById[row.foodId];
+    const item = resolveFood(foodById[row.foodId], { variant: row.variant, lf: row.lf });
     const portion = item.portions[row.index];
     return { row, item, portion, nutrition: portionNutrition(item, portion.grams, row.count) };
   });
@@ -304,6 +472,18 @@ export function ChislaPage() {
   const dayPct = (totals.kcal / DAILY_REFERENCE) * 100;
   const topEntry = rows.length > 1 ? rows.reduce((best, entry) => (entry.nutrition.kcal > best.nutrition.kcal ? entry : best)) : null;
   const topPct = topEntry && totals.kcal > 0 ? round((topEntry.nutrition.kcal / totals.kcal) * 100) : 0;
+
+  const sweetKcal = rows.reduce((sum, entry) => sum + (entry.item.cat === 'sweet' ? entry.nutrition.kcal : 0), 0);
+  const advice =
+    totals.kcal >= ADVICE_MIN_KCAL
+      ? getAdvice({
+          pPct: share(totals.p * 4),
+          fPct: share(totals.f * 9),
+          cPct: share(totals.c * 4),
+          sweetPct: totals.kcal > 0 ? (sweetKcal / totals.kcal) * 100 : 0,
+          onPlate: new Set(plate.map((row) => row.foodId)),
+        })
+      : null;
 
   const scrollToPlate = () => plateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -464,7 +644,7 @@ export function ChislaPage() {
                 <ul className="flex flex-col gap-2">
                   {rows.map(({ row, item, portion, nutrition }) => (
                     <li
-                      key={`${row.foodId}-${row.index}`}
+                      key={`${row.foodId}-${row.index}-${row.variant ?? ''}-${row.lf ? 'lf' : ''}`}
                       className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -473,7 +653,7 @@ export function ChislaPage() {
                             <FoodIcon icon={item.emoji} />
                           </span>
                           <div className="min-w-0">
-                            <div className="text-base font-semibold leading-tight text-slate-800">{item.name}</div>
+                            <div className="text-base font-semibold leading-tight text-slate-800">{item.displayName}</div>
                             <div className="text-sm text-slate-500">
                               {portion.label}, {portion.grams} {item.unit}
                             </div>
@@ -529,10 +709,35 @@ export function ChislaPage() {
               </div>
 
               {topEntry && topPct > 0 && (
-                <p className="rounded-2xl bg-[#7A2432]/10 px-4 py-3 text-sm text-slate-700">
-                  Больше всего калорий даёт <span className="font-semibold">{topEntry.item.name}</span>:{' '}
-                  {topPct}% тарелки.
-                </p>
+                <InsightCard tint="#FF9F0A" icon={<FlameIcon />} label="Больше всего калорий" title={topEntry.item.displayName}>
+                  <div className="mt-1.5 flex items-center gap-2.5">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200/50" aria-hidden="true">
+                      <div className="h-full rounded-full" style={{ width: `${topPct}%`, background: '#FF9F0A' }} />
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums text-slate-800">{topPct}% тарелки</span>
+                  </div>
+                </InsightCard>
+              )}
+
+              {advice && (
+                <InsightCard tint={advice.tint} icon={<BalanceIcon />} label={advice.label} title={advice.title}>
+                  <p className="mt-0.5 text-sm text-slate-500">{advice.text}</p>
+                  {advice.ids.length > 0 && (
+                    <ul className="mt-2.5 flex flex-wrap gap-1.5">
+                      {advice.ids.map((id) => (
+                        <li
+                          key={id}
+                          className="flex items-center gap-1.5 rounded-full bg-slate-200/50 py-1 pl-1.5 pr-3 text-sm font-medium text-slate-700"
+                        >
+                          <span className="flex h-5 w-5 items-center justify-center text-base leading-none">
+                            <FoodIcon icon={foodById[id].emoji} />
+                          </span>
+                          {foodById[id].name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </InsightCard>
               )}
 
               <p className="text-sm text-slate-400">
@@ -577,7 +782,7 @@ export function ChislaPage() {
           onExpandedChange={(expanded) => setOpenedId(expanded ? picked.item.id : null)}
         >
           {({ close, expanded }) => (
-            <PortionList item={picked.item} expanded={expanded} close={close} onChoose={(index) => addToPlate(picked.item, index)} />
+            <PortionList item={picked.item} expanded={expanded} close={close} onChoose={(index, selection) => addToPlate(picked.item, index, selection)} />
           )}
         </TilePopover>
       )}
