@@ -1,3 +1,5 @@
+import { ParamIcon } from './foodIconTemplates';
+
 // Иконка продукта: обычный эмодзи или своя SVG-картинка, если в стандарте эмодзи нет
 // (поле emoji вида 'svg:имя').
 function ChipsBag() {
@@ -25,5 +27,6 @@ const custom = {
 export function FoodIcon({ icon }) {
   const Custom = custom[icon];
   if (Custom) return <Custom />;
+  if (typeof icon === 'string' && icon.startsWith('svg:')) return <ParamIcon icon={icon} />;
   return <span aria-hidden="true">{icon}</span>;
 }

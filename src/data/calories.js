@@ -1,3 +1,4 @@
+import { iconOverrides } from './foodIcons.js';
 import { food, ML, variants, resolveFood, kcalRange } from './foodHelpers.js';
 import { extraFoods } from './foodsExtra.js';
 
@@ -622,6 +623,7 @@ const allFoods = [...rawFoods, ...extraFoods];
 
 export const foods = allFoods.map((item, index) => ({
   ...item,
+  emoji: iconOverrides[item.id] || item.emoji,
   sub: subOf[item.id]?.[0] || item.sub || '',
   order: subOf[item.id]?.[1] ?? 1000 + index,
 }));

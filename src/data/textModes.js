@@ -212,4 +212,4 @@ export const normalizePath = (pathname) => pathname.replace(/\/+$/, '') || '/';
 
 export const modeForPath = (pathname) => modeByPath[normalizePath(pathname)];
 
-export const isTextPathname = (pathname) => Object.hasOwn(modeByPath, normalizePath(pathname));
+export const isTextPathname = (pathname) => Object.prototype.hasOwnProperty.call(modeByPath, normalizePath(pathname));
