@@ -58,7 +58,7 @@ rabbit cut:B58A66:7A5A3C:marble
 chicken_cutlet cut:D9A455:8A5E1F:crust
 pork_chop cut:C98A58:7A4A25:bone
 meat_french cut:E8C879:A9792A:crust
-kholodets cut:EADFC0:B9A96A:plain
+kholodets cheese:aspic:F0DFA0:E2CC84:0
 chicken_breast cut:F2E4CF:CDB48C:marble
 chicken_leg drum:D9893E:8A4F1B
 chicken_fried drum:C9822E:7A4510:crispy
@@ -211,7 +211,7 @@ sesame heap:E9DDB8:FFF6DC:grain
 greens veg:sprig:4F9A3A
 basil veg:leaf:4FB04A:2E7E2E
 cilantro veg:clover:6BB05A:3F8A32
-mint veg:oval:6CCB7A:3E9A5A
+mint veg:mint:6CCB7A:3E9A5A
 sorrel veg:arrow:A9C94E:6E8F2A
 pelmeni dumpling:crescent:F3E6C8:C9B58A:FFF8EA
 vareniki_potato dumpling:crescent:F6EBD0:D1BE90:F2D75E
@@ -329,7 +329,7 @@ coconut_water fruit:single:9DBB6A:6A8F3A:plain
 coconut_oil jar:F6F2EA:F2EEE2:2E9B6A
 bounty bar:2E5FA8:F6EEDD:FFFFFF
 raffaello sweet:ball:FFFFFF:E3C99A
-coconut_flakes heap:F6F2EA:FFFFFF:flake
+coconut_flakes heap:EFE8D4:FFFFFF:flake
 walnut nut:walnut:C99A5E
 peanut nut:peanut:D9B77A
 almond nut:almond:C99A6E
@@ -427,6 +427,33 @@ protein_bar bar:2E7DD1:7A4A2E:F6EAD0
 whey jar:222222:EDE3C8:D3202F
 sandwich_sausage dish:open:E3B864:D98A8A:round
 sandwich_cheese dish:open:E3B864:F7C531:cheese
+hlebcy bread:D9A04A:EFCE86:crisp
+potato_rustic dish:wedges:EBC25E:B58A3A
+cheese_sauce can:F6C945:E8A317:bottle
+garlic_sauce can:F6F0DA:5E9E3A:bottle
+sweet_chili can:E8505B:F2C94C:bottle
+hot_sauce can:C62F3A:2B2B2B:bottle
+cheese cheese:block:F6C945:E9A92B:3
+emmental cheese:block:F7D35C:E8B83A:5
+gouda cheese:block:F2B93B:C9402B:1
+dutch_cheese cheese:block:F2BE45:E8B03A:2
+russian_cheese cheese:block:F5D06A:EBC25A:1
+cheddar cheese:block:F08A2B:D97A1E:0
+parmesan cheese:block:F0E2B0:D9B25A:0:cracks
+blue_cheese cheese:block:F3EBD6:E8DFC6:0:veins
+suluguni cheese:block:F7F0DC:EFE6CC:0:layers
+halloumi cheese:block:F6EED4:E9DFBF:0:grill
+brynza cheese:block:FBF8EE:F1EBDA:0:cracks
+processed_cheese cheese:sheet:F7C531:E9B21E
+mozzarella cheese:balls:FFFDF5:E8E2D0
+adyghe cheese:wheel:F6F1E2:EAE2CC:36
+edam cheese:wheel:F4C14A:D3202F:44:wax
+camembert cheese:wheel:F6E7B0:F8F4EA:40
+brie cheese:wheel:F2E3A8:F8F4EA:52
+ricotta tub:FFFFFF:6B8F3A:FFFFFF
+cream_cheese tub:F8F4EA:D9822B:FFF8EA
+mac_cheese dish:pasta:F4D26B:F0A53A:none
+khachapuri cheese:boat:E8B864:F6D24A:F2A81D
 `;
 
 export const iconOverrides = Object.fromEntries(

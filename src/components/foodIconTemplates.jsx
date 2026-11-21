@@ -1,8 +1,107 @@
+import { useId } from 'react';
+
 // Параметрические SVG-иконки продуктов. Строка иконки: 'svg:шаблон:параметр:параметр…'
 // Цвета пишутся без #, например 'svg:bar:2B5BA6:5A3420:E64A3C:nuts'.
 const h = (v, fallback = '999999') => `#${v || fallback}`;
 const SHADE = 'rgba(0,0,0,.28)';
 const SHINE = 'rgba(255,255,255,.5)';
+
+const rgbOf = (v) => {
+  const t = (v || '999999').replace('#', '');
+  return [0, 2, 4].map((i) => parseInt(t.slice(i, i + 2), 16));
+};
+// tone('E8C46B', .2) светлее, tone('E8C46B', -.2) темнее: из одного цвета получаем весь объём предмета
+const tone = (v, amt) => {
+  const target = amt < 0 ? 0 : 255;
+  const k = Math.abs(amt);
+  const [r, g, b] = rgbOf(v);
+  const m = (c) => Math.round(c + (target - c) * k);
+  return `rgb(${m(r)},${m(g)},${m(b)})`;
+};
+const Grad = ({ id, a, b, c, x2 = 0, y2 = 1 }) => (
+  <linearGradient id={id} x1="0" y1="0" x2={x2} y2={y2}>
+    <stop offset="0" stopColor={a} />
+    {c && <stop offset="0.5" stopColor={c} />}
+    <stop offset="1" stopColor={b} />
+  </linearGradient>
+);
+const Shade = ({ id }) => (
+  <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stopColor="#fff" stopOpacity=".24" />
+    <stop offset=".45" stopColor="#fff" stopOpacity="0" />
+    <stop offset="1" stopColor="#000" stopOpacity=".16" />
+  </linearGradient>
+);
+// Общая геометрия «бруска» (торт, сыр): все грани делят одни и те же вершины, поэтому швов и пустот нет
+const BLK = {
+  front: 'M5 21H32V41H5Z',
+  side: 'M32 21L43 12V32L32 41Z',
+  top: 'M5 21L16 12H43L32 21Z',
+  all: 'M5 21L16 12H43V32L32 41H5Z',
+};
+const sideBand = (ya, yb) => `M32 ${ya}L43 ${ya - 9}V${yb - 9}L32 ${yb}Z`;
+
+// Тень цилиндра: тёмный край, блик слева, тёмный правый край. Кладётся поверх всего предмета, обрезанного по контуру
+const CylShade = ({ id }) => (
+  <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stopColor="#000" stopOpacity=".26" />
+    <stop offset=".16" stopColor="#fff" stopOpacity=".3" />
+    <stop offset=".34" stopColor="#fff" stopOpacity="0" />
+    <stop offset=".72" stopColor="#000" stopOpacity="0" />
+    <stop offset="1" stopColor="#000" stopOpacity=".3" />
+  </linearGradient>
+);
+const FlatShade = ({ id }) => (
+  <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stopColor="#fff" stopOpacity=".24" />
+    <stop offset=".5" stopColor="#fff" stopOpacity="0" />
+    <stop offset="1" stopColor="#000" stopOpacity=".2" />
+  </linearGradient>
+);
+const EDGE = 'rgba(0,0,0,.28)';
+// Мягкая тень: радиальный градиент от тёмного центра к полной прозрачности, поэтому жёсткого края нет
+const SoftShadow = ({ cx = 24, cy = 43, rx = 18, ry = 2.6 }) => (
+  <g>
+    <defs>
+      <radialGradient id="kfsoft">
+        <stop offset="0" stopColor="#000" stopOpacity=".34" />
+        <stop offset=".55" stopColor="#000" stopOpacity=".14" />
+        <stop offset="1" stopColor="#000" stopOpacity="0" />
+      </radialGradient>
+    </defs>
+    <ellipse cx={cx} cy={cy} rx={rx * 1.12} ry={ry * 1.7} fill="url(#kfsoft)" />
+  </g>
+);
+const FloorShadow = ({ rx = 18.5 }) => <SoftShadow cx={23} cy={42.6} rx={rx} ry={2.2} />;
+const BlockOutline = () => (
+  <>
+    <path d="M5 21H32L43 12M32 21V41" fill="none" stroke="rgba(0,0,0,.15)" strokeWidth=".9" strokeLinejoin="round" />
+    <path d={BLK.all} fill="none" stroke="rgba(0,0,0,.3)" strokeWidth="1.3" strokeLinejoin="round" />
+  </>
+);
+const SPIRAL = (() => {
+  const pts = [];
+  for (let i = 0; i <= 90; i += 1) {
+    const t = (i / 90) * Math.PI * 4;
+    const r = 1 + (11.5 / (Math.PI * 4)) * t;
+    pts.push(`${(r * Math.cos(t)).toFixed(2)} ${(r * Math.sin(t)).toFixed(2)}`);
+  }
+  return `M${pts.join('L')}`;
+})();
+// Контур листа с зубчиками: основание в (0,0), кончик вверху
+const leafPath = (rx, ry, teeth) => {
+  const pts = [];
+  const N = 84;
+  for (let i = 0; i < N; i += 1) {
+    const u = (i / N) * Math.PI * 2;
+    const sn = Math.sin(u);
+    const w = Math.pow((1 + sn) / 2 + 0.0001, 0.42);
+    const tri = Math.abs((((i / N) * teeth) % 1) * 2 - 1);
+    const k = 1 + 0.075 * tri;
+    pts.push(`${(rx * Math.cos(u) * w * k).toFixed(2)} ${(-ry + ry * sn * k).toFixed(2)}`);
+  }
+  return `M${pts.join('L')}Z`;
+};
 
 const bar = ([wrap, choc, label, kind]) => (
   <g transform="rotate(-14 24 24)">
@@ -17,70 +116,166 @@ const bar = ([wrap, choc, label, kind]) => (
   </g>
 );
 
-const slice = ([sponge, cream, top, deco]) => (
+const slice = ([sponge, cream, top, deco], uid) => {
+  const bands = deco === 'stripe'
+    ? [[21, 25, 's'], [25, 27, 'c'], [27, 31, 's'], [31, 33, 'c'], [33, 37, 's'], [37, 39, 'c'], [39, 41, 's']]
+    : [[21, 28, 's'], [28, 32, 'c'], [32, 41, 's']];
+  const col = (k) => (k === 's' ? sponge : cream);
+  return (
+    <g>
+      <defs>
+        <clipPath id={`${uid}f`}><path d={BLK.front} /></clipPath>
+        <Grad id={`${uid}t`} a={tone(top, 0.24)} b={tone(top, -0.02)} />
+        <Shade id={`${uid}sh`} />
+      </defs>
+      <FloorShadow />
+      {bands.map(([ya, yb, k]) => <path key={ya} d={`M5 ${ya}H32V${yb}H5Z`} fill={h(col(k))} />)}
+      <path d={BLK.front} fill={`url(#${uid}sh)`} />
+      {bands.map(([ya, yb, k]) => <path key={`s${ya}`} d={sideBand(ya, yb)} fill={tone(col(k), -0.2)} />)}
+      <path d={BLK.top} fill={`url(#${uid}t)`} />
+      {deco === 'dust' && <path d="M12 19L19 14H37L30 19Z" fill="rgba(255,255,255,.28)" />}
+      {deco === 'drip' && (
+        <g clipPath={`url(#${uid}f)`}>
+          <path d="M5 21H32V24.500Q32 28.500 29.500 26.500Q27.500 24.500 26 27.500Q24.500 31 22 28Q20 25.500 18 27.500Q16 30 13.500 27Q12 25 10 26.500Q8 28 5 25Z" fill={tone(top, -0.05)} />
+        </g>
+      )}
+      {deco === 'cherry' && (
+        <>
+          <path d="M28 16.500C28 12 30.500 9 33 8" stroke="#3E7B27" strokeWidth="1.300" fill="none" strokeLinecap="round" />
+          <circle cx="28" cy="17" r="3.500" fill="#C8102E" />
+          <circle cx="27" cy="15.800" r="1.100" fill="rgba(255,255,255,.65)" />
+        </>
+      )}
+      {deco === 'berry' && [[20, 16.800], [27, 16], [34, 15.200]].map(([x, y]) => (
+        <g key={x}>
+          <circle cx={x} cy={y} r="2.900" fill="#B3123A" />
+          <circle cx={x - 0.9} cy={y - 1} r=".9" fill="rgba(255,255,255,.6)" />
+        </g>
+      ))}
+      <BlockOutline />
+    </g>
+  );
+};
+
+const roll = ([sponge, cream], uid) => (
   <g>
-    <ellipse cx="24" cy="41" rx="20" ry="3" fill={SHADE} opacity=".35" />
-    <path d="M5 24 12 13h33l-6 11z" fill={h(top)} />
-    <rect x="5" y="24" width="34" height="16" rx="2.5" fill={h(sponge)} />
-    <rect x="5" y="30" width="34" height="4" fill={h(cream)} />
-    <path d="M39 24 45 13v16l-6 11z" fill={h(sponge)} />
-    <path d="M39 24 45 13v16l-6 11z" fill={SHADE} opacity=".25" />
-    {deco === 'cherry' && <><circle cx="25" cy="15" r="3.2" fill="#C8102E" /><path d="M25 12c1-3 3-3 4-4" stroke="#3E7B27" strokeWidth="1.3" fill="none" /></>}
-    {deco === 'berry' && [[19, 16], [26, 17], [32, 15]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="2.5" fill="#B3123A" />)}
-    {deco === 'dust' && [[16, 17], [22, 15], [28, 17], [34, 15], [24, 19]].map(([x, y]) => <circle key={x + y} cx={x} cy={y} r="1" fill="#fff" opacity=".8" />)}
-    {deco === 'drip' && <path d="M5 24h34v3c-3 2-4-1-7 1s-3 3-6 1-5 1-8-1-5 2-8 0-5 1-5 0z" fill={h(top)} />}
-    {deco === 'stripe' && <path d="M8 22 15 15M18 22 25 15M28 22 35 15" stroke="rgba(255,255,255,.5)" strokeWidth="1.6" />}
+    <defs>
+      <linearGradient id={`${uid}b`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor={tone(sponge, 0.22)} />
+        <stop offset=".55" stopColor={h(sponge)} />
+        <stop offset="1" stopColor={tone(sponge, -0.24)} />
+      </linearGradient>
+      <radialGradient id={`${uid}r`} cx=".4" cy=".32" r=".85">
+        <stop offset="0" stopColor={tone(cream, 0.4)} />
+        <stop offset="1" stopColor={h(cream)} />
+      </radialGradient>
+      <clipPath id={`${uid}e`}><ellipse cx="36" cy="25" rx="8" ry="13.500" /></clipPath>
+    </defs>
+    <FloorShadow rx={18} />
+    <path d="M14 11.500H36A8 13.500 0 0 1 36 38.500H14A8 13.500 0 0 1 14 11.500Z" fill={`url(#${uid}b)`} />
+    <path d="M17 15H33" stroke="rgba(255,255,255,.32)" strokeWidth="1.800" strokeLinecap="round" />
+    <ellipse cx="36" cy="25" rx="8" ry="13.500" fill={`url(#${uid}r)`} />
+    <g clipPath={`url(#${uid}e)`}>
+      <g transform="translate(36 25) scale(.62 1)">
+        <path d={SPIRAL} fill="none" stroke={tone(sponge, 0.02)} strokeWidth="2.200" strokeLinecap="round" />
+      </g>
+    </g>
+    <ellipse cx="36" cy="25" rx="8" ry="13.500" fill="none" stroke="rgba(0,0,0,.2)" strokeWidth="1" />
+    <path d="M14 11.500H36A8 13.500 0 0 1 36 38.500H14A8 13.500 0 0 1 14 11.500Z" fill="none" stroke="rgba(0,0,0,.28)" strokeWidth="1.200" strokeLinejoin="round" />
   </g>
 );
 
-const roll = ([sponge, cream]) => (
+const bowl = ([broth, garnish], uid) => (
   <g>
-    <ellipse cx="24" cy="40" rx="18" ry="3" fill={SHADE} opacity=".3" />
-    <rect x="6" y="14" width="32" height="24" rx="12" fill={h(sponge)} />
-    <ellipse cx="38" cy="26" rx="8" ry="12" fill={h(cream)} />
-    <ellipse cx="38" cy="26" rx="8" ry="12" fill="none" stroke={h(sponge)} strokeWidth="2" />
-    <path d="M38 26m-2 0a2 4 0 1 1 4 0 4 7 0 1 1-8 0" fill="none" stroke={h(sponge)} strokeWidth="1.8" />
-  </g>
-);
-
-const bowl = ([broth, garnish]) => (
-  <g>
+    <defs>
+      <radialGradient id={`${uid}br`} cx=".5" cy=".4" r=".7">
+        <stop offset="0" stopColor={tone(broth, 0.2)} />
+        <stop offset="1" stopColor={tone(broth, -0.1)} />
+      </radialGradient>
+    </defs>
     <path d="M4 22h40c0 11-8 19-20 19S4 33 4 22z" fill="#F6F2EA" stroke="#B9B2A6" strokeWidth="1.5" />
-    <ellipse cx="24" cy="22" rx="20" ry="5.2" fill={h(broth)} />
+    <ellipse cx="24" cy="22" rx="20" ry="5.2" fill={`url(#${uid}br)`} />
     <ellipse cx="24" cy="22" rx="20" ry="5.2" fill="none" stroke="#B9B2A6" strokeWidth="1.5" />
     {garnish === 'cream' && <circle cx="24" cy="21.5" r="3.2" fill="#FFF8EA" />}
-    {garnish === 'herb' && [[16, 22], [22, 20], [28, 23], [33, 21]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="1.5" fill="#3E7B27" />)}
-    {garnish === 'balls' && [[17, 22], [24, 21], [31, 22.5]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="2.6" fill="#B07A45" />)}
+    {garnish === 'herb' && [[15, 22.5, -20], [21, 20.5, 25], [28, 22.8, -10], [33, 20.8, 30]].map(([x, y, r]) => (
+      <path key={x} transform={`translate(${x} ${y}) rotate(${r})`} d="M-3 0C-1.600-2.200 1.600-2.200 3 0C1.600 2.200-1.600 2.200-3 0Z" fill="#4F9A2E" stroke="#3A7A20" strokeWidth=".5" />
+    ))}
+    {garnish === 'balls' && [[17, 22.2], [24, 20.8], [31, 22.6]].map(([x, y]) => (
+      <g key={x}>
+        <circle cx={x} cy={y} r="3.200" fill="#A8703C" stroke="#7A4A22" strokeWidth=".7" />
+        <ellipse cx={x - 1} cy={y - 1.200} rx="1.200" ry=".7" fill="rgba(255,255,255,.4)" />
+      </g>
+    ))}
     {garnish === 'noodle' && <path d="M12 22c3-3 5 2 8-1s5 2 8-1 5 2 8-1" stroke="#F3DFA2" strokeWidth="1.6" fill="none" />}
     {garnish === 'egg' && <><ellipse cx="29" cy="21" rx="5" ry="3" fill="#FFF8EA" stroke="#D9CDB0" strokeWidth=".8" /><circle cx="29" cy="21" r="1.8" fill="#F2A81D" /></>}
     {garnish === 'butter' && <rect x="20" y="19.5" width="8" height="5" rx="1.5" fill="#F6D04D" />}
     {garnish === 'jam' && <circle cx="24" cy="21.5" r="3.4" fill="#B3123A" />}
     {garnish === 'berry' && [[18, 21], [24, 22.5], [30, 21]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="2" fill="#C2185B" />)}
-    {garnish === 'seeds' && [[16, 22], [22, 20], [28, 23], [33, 21]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="1.1" fill="#8A6A3A" />)}
-    {garnish === 'oil' && [[16, 21], [24, 23], [31, 21]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="1.3" fill="#F6C94A" opacity=".8" />)}
+    {garnish === 'seeds' && <path d="M13 22.500c3-2.500 5 2.500 8 0s5 2.500 8 0 5 2.500 8 0" stroke="#8A6A3A" strokeWidth="1.500" fill="none" strokeLinecap="round" />}
+    {garnish === 'oil' && (
+      <>
+        <ellipse cx="24" cy="22" rx="11.500" ry="2.500" fill="none" stroke="rgba(255,226,140,.8)" strokeWidth="1.200" />
+        <ellipse cx="24" cy="22" rx="5.500" ry="1.200" fill="none" stroke="rgba(255,226,140,.8)" strokeWidth="1" />
+      </>
+    )}
     <path d="M17 12c-2-2 2-3 0-6M25 12c-2-2 2-3 0-6M33 12c-2-2 2-3 0-6" stroke="#B9B2A6" strokeWidth="1.4" strokeLinecap="round" fill="none" />
   </g>
 );
 
-const cut = ([color, edge, kind]) => (
+const CUT = 'M8 27C6 17 14 10 25 11C37 12 43 19 41 29C39 37 30 40 21 38C13 37 9 33 8 27Z';
+const CUT_INNER = 'M12 27C11 20 17 15 25 15.500C33 16 37 21 36 28C34 33 28 35 22 34C16 33 13 31 12 27Z';
+const cut = ([color, edge, kind], uid) => (
   <g>
-    <path d="M7 28C5 17 14 10 26 11c11 1 17 8 15 18-2 8-12 10-21 9-7-1-12-4-13-10z" fill={h(color)} stroke={h(edge)} strokeWidth="2" strokeLinejoin="round" />
-    {kind === 'grill' && <path d="M15 17 24 30M22 14 32 28M29 14 37 24" stroke="rgba(40,20,10,.55)" strokeWidth="2.2" strokeLinecap="round" />}
-    {kind === 'bone' && <><circle cx="35" cy="24" r="4.2" fill="#F7EFE0" stroke={h(edge)} strokeWidth="1.5" /><circle cx="35" cy="24" r="1.6" fill={h(edge)} /></>}
-    {kind === 'liver' && [[16, 22], [25, 27], [30, 18], [20, 31]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="1.4" fill="rgba(0,0,0,.28)" />)}
-    {kind === 'marble' && <path d="M12 20c5-3 8 2 13-1M16 30c5-3 9 1 15-2" stroke="rgba(255,235,220,.8)" strokeWidth="2" fill="none" strokeLinecap="round" />}
-    {kind === 'crust' && [[16, 20], [24, 17], [31, 22], [22, 29], [30, 30]].map(([x, y]) => <circle key={x + y} cx={x} cy={y} r="1.2" fill="rgba(255,225,150,.7)" />)}
-    <path d="M12 16c3-3 8-4 12-4" stroke={SHINE} strokeWidth="2" strokeLinecap="round" fill="none" />
+    <defs>
+      <clipPath id={`${uid}i`}><path d={CUT_INNER} /></clipPath>
+      <Grad id={`${uid}o`} a={tone(edge, 0.18)} b={tone(edge, -0.25)} />
+      <Grad id={`${uid}n`} a={tone(color, 0.24)} b={tone(color, -0.14)} />
+    </defs>
+    <SoftShadow cx={24} cy={41.500} rx={16} ry={2} />
+    {kind === 'bone' && (
+      <>
+        <path d="M34 24H43" stroke="#F4ECDB" strokeWidth="4.500" strokeLinecap="round" />
+        <circle cx="44" cy="21.200" r="3" fill="#F4ECDB" stroke="rgba(0,0,0,.2)" strokeWidth=".8" />
+        <circle cx="44" cy="26.800" r="3" fill="#F4ECDB" stroke="rgba(0,0,0,.2)" strokeWidth=".8" />
+        <path d="M34 22.200H43M34 25.800H43" stroke="rgba(0,0,0,.14)" strokeWidth=".7" />
+      </>
+    )}
+    <path d={CUT} fill={`url(#${uid}o)`} />
+    <path d={CUT_INNER} fill={`url(#${uid}n)`} />
+    <g clipPath={`url(#${uid}i)`}>
+      {kind === 'grill' && <path d="M12 34L21 13M20 36L29 13M28 35L36 15" stroke="rgba(60,25,10,.5)" strokeWidth="2.800" strokeLinecap="round" />}
+      {kind === 'marble' && <path d="M12 22C17 19 21 24 26 21S33 22 37 20M12 29C17 27 22 31 27 28S33 29 37 27" stroke="rgba(255,236,224,.7)" strokeWidth="1.700" strokeLinecap="round" fill="none" />}
+      {kind === 'crust' && [[19, 22, -20], [29, 21, 15], [24, 29, 5]].map(([x, y, r]) => <ellipse key={x} cx={x} cy={y} rx="5" ry="2.400" transform={`rotate(${r} ${x} ${y})`} fill="rgba(255,230,160,.34)" />)}
+      {kind === 'liver' && <path d="M15 20C21 17 30 17 35 20" stroke="rgba(255,255,255,.3)" strokeWidth="3" strokeLinecap="round" fill="none" />}
+      <path d="M14 20C18 17 24 16 30 17" stroke="rgba(255,255,255,.38)" strokeWidth="2" strokeLinecap="round" fill="none" />
+    </g>
+    <path d={CUT_INNER} fill="none" stroke="rgba(0,0,0,.14)" strokeWidth=".9" />
+    <path d={CUT} fill="none" stroke="rgba(0,0,0,.3)" strokeWidth="1.200" strokeLinejoin="round" />
   </g>
 );
 
-const mince = ([color]) => (
-  <g>
-    <path d="M5 38C5 22 14 12 24 12s19 10 19 26z" fill={h(color)} />
-    {[[14, 32], [20, 26], [26, 31], [32, 25], [24, 20], [35, 33], [17, 36], [29, 36]].map(([x, y]) => <circle key={x + y} cx={x} cy={y} r="3" fill="rgba(0,0,0,.18)" />)}
-    {[[16, 30], [22, 24], [28, 29], [34, 23], [26, 18]].map(([x, y]) => <circle key={x + y} cx={x} cy={y} r="1.3" fill={SHINE} />)}
-  </g>
-);
+const mince = ([color], uid) => {
+  const d = 'M4 40C4 24 13 13 24 13S44 24 44 40Z';
+  return (
+    <g>
+      <defs>
+        <clipPath id={`${uid}m`}><path d={d} /></clipPath>
+        <Grad id={`${uid}g`} a={tone(color, 0.22)} b={tone(color, -0.2)} />
+      </defs>
+      <SoftShadow cx={24} cy={41} rx={19} ry={2} />
+      <path d={d} fill={`url(#${uid}g)`} />
+      <g clipPath={`url(#${uid}m)`} fill="none" strokeLinecap="round">
+        <path d="M8 36C11 32 14 38 17 34S22 32 25 35" stroke={tone(color, 0.32)} strokeWidth="2.600" />
+        <path d="M22 28C25 24 28 30 31 26S36 25 40 29" stroke={tone(color, -0.22)} strokeWidth="2.600" />
+        <path d="M12 28C15 24 18 29 21 25S26 21 28 23" stroke={tone(color, -0.22)} strokeWidth="2.400" />
+        <path d="M28 36C31 33 34 38 37 34S41 33 43 35" stroke={tone(color, 0.3)} strokeWidth="2.600" />
+        <path d="M17 21C20 18 24 21 27 18" stroke={tone(color, 0.3)} strokeWidth="2.400" />
+        <path d="M6 31C9 28 11 32 13 30" stroke={tone(color, -0.22)} strokeWidth="2.200" />
+      </g>
+      <path d={d} fill="none" stroke="rgba(0,0,0,.28)" strokeWidth="1.200" strokeLinejoin="round" />
+    </g>
+  );
+};
 
 const drum = ([skin, edge, kind]) => (
   <g>
@@ -114,24 +309,55 @@ const fish = ([body, belly, kind]) => (
   </g>
 );
 
-const can = ([color, band, kind]) => (
-  <g>
-    {kind === 'bottle' ? (
-      <>
-        <rect x="19" y="4" width="10" height="7" rx="2" fill={h(band)} />
-        <path d="M20 11h8c0 5 6 6 6 12v17a3 3 0 0 1-3 3H17a3 3 0 0 1-3-3V23c0-6 6-7 6-12z" fill={h(color)} stroke="rgba(0,0,0,.18)" strokeWidth="1.2" />
-        <rect x="14" y="26" width="20" height="9" fill={h(band)} />
-      </>
-    ) : (
-      <>
-        <rect x="14" y="7" width="20" height="35" rx="4" fill={h(color)} />
-        <ellipse cx="24" cy="8" rx="9.5" ry="2.6" fill="#D8DCE0" stroke="#9AA0A6" strokeWidth="1" />
-        <rect x="14" y="21" width="20" height="9" fill={h(band)} />
-      </>
-    )}
-    <path d="M18 14v24" stroke={SHINE} strokeWidth="2.4" strokeLinecap="round" />
-  </g>
-);
+const can = ([color, band, kind], uid) => {
+  const ref = (k) => `url(#${uid}${k})`;
+  if (kind === 'bottle') {
+    const d = 'M20 12H28C28 18 35 19 35 26V41A3 3 0 0 1 32 44H16A3 3 0 0 1 13 41V26C13 19 20 18 20 12Z';
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}c`}><path d={d} /></clipPath>
+          <Grad id={`${uid}g`} a={tone(color, 0.18)} b={tone(color, -0.2)} />
+          <CylShade id={`${uid}s`} />
+        </defs>
+        <SoftShadow cx={24.0} cy={45.2} rx={11.0} ry={1.8} />
+        <path d={d} fill={ref('g')} />
+        <g clipPath={ref('c')}>
+          <rect x="10" y="28" width="30" height="10" fill={h(band)} />
+          <path d="M10 28H40M10 38H40" stroke="rgba(0,0,0,.14)" strokeWidth=".8" />
+        </g>
+        <path d={d} fill={ref('s')} />
+        <path d="M16.500 30V41" stroke="rgba(255,255,255,.45)" strokeWidth="1.800" strokeLinecap="round" />
+        <path d={d} fill="none" stroke={EDGE} strokeWidth="1.100" strokeLinejoin="round" />
+        <path d="M19 12V7.200A2 2 0 0 1 21 5.200H27A2 2 0 0 1 29 7.200V12Z" fill={h(band)} stroke={EDGE} strokeWidth="1.100" strokeLinejoin="round" />
+        <path d="M19 9.500H29" stroke="rgba(0,0,0,.2)" strokeWidth=".9" />
+      </g>
+    );
+  }
+  const d = 'M15 9A9 2.400 0 0 1 33 9V39A3.500 3.500 0 0 1 29.500 42.500H18.500A3.500 3.500 0 0 1 15 39Z';
+  return (
+    <g>
+      <defs>
+        <clipPath id={`${uid}c`}><path d={d} /></clipPath>
+        <Grad id={`${uid}g`} a={tone(color, 0.16)} b={tone(color, -0.2)} />
+        <Grad id={`${uid}l`} a="#EEF1F4" b="#B3BAC2" />
+        <CylShade id={`${uid}s`} />
+      </defs>
+      <SoftShadow cx={24.0} cy={44.5} rx={10.5} ry={1.8} />
+      <path d={d} fill={ref('g')} />
+      <g clipPath={ref('c')}>
+        <rect x="10" y="19" width="30" height="12" fill={h(band)} />
+        <path d="M10 19H40M10 31H40" stroke="rgba(0,0,0,.14)" strokeWidth=".8" />
+      </g>
+      <path d={d} fill={ref('s')} />
+      <path d="M18.500 20V39" stroke="rgba(255,255,255,.4)" strokeWidth="1.800" strokeLinecap="round" />
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="1.100" strokeLinejoin="round" />
+      <ellipse cx="24" cy="9" rx="9" ry="2.400" fill={ref('l')} stroke="rgba(0,0,0,.3)" strokeWidth=".9" />
+      <ellipse cx="24" cy="9" rx="6.600" ry="1.500" fill="none" stroke="rgba(0,0,0,.2)" strokeWidth=".8" />
+      <path d="M21.500 8.700H26.500" stroke="#8B929A" strokeWidth="1.400" strokeLinecap="round" />
+    </g>
+  );
+};
 
 const glass = ([liquid, kind]) => (
   <g>
@@ -251,20 +477,35 @@ const sweet = ([kind, c1, c2, c3]) => (
   </g>
 );
 
-const jar = ([lid, content, label]) => (
-  <g>
-    <rect x="12" y="6" width="24" height="8" rx="2.5" fill={h(lid)} />
-    <path d="M13 14h22c3 3 4 5 4 9v14a4 4 0 0 1-4 4H13a4 4 0 0 1-4-4V23c0-4 1-6 4-9z" fill={h(content)} />
-    <rect x="9" y="22" width="30" height="14" fill={h(label)} />
-    <path d="M14 18v22" stroke={SHINE} strokeWidth="2.4" strokeLinecap="round" />
-  </g>
-);
-
+const jar = ([lid, content, label], uid) => {
+  const d = 'M13 14H35C38 17 39 19.500 39 24V39A4 4 0 0 1 35 43H13A4 4 0 0 1 9 39V24C9 19.500 10 17 13 14Z';
+  return (
+    <g>
+      <defs>
+        <clipPath id={`${uid}c`}><path d={d} /></clipPath>
+        <Grad id={`${uid}g`} a={tone(content, 0.16)} b={tone(content, -0.18)} />
+        <Grad id={`${uid}l`} a={tone(lid, 0.2)} b={tone(lid, -0.2)} />
+        <CylShade id={`${uid}s`} />
+      </defs>
+      <SoftShadow cx={24.0} cy={44.6} rx={15.0} ry={1.9} />
+      <path d={d} fill={`url(#${uid}g)`} />
+      <g clipPath={`url(#${uid}c)`}>
+        <rect x="6" y="24" width="36" height="13" fill={h(label)} />
+        <path d="M6 24H42M6 37H42" stroke="rgba(0,0,0,.14)" strokeWidth=".8" />
+      </g>
+      <path d={d} fill={`url(#${uid}s)`} />
+      <path d="M13.500 26V38" stroke="rgba(255,255,255,.45)" strokeWidth="1.800" strokeLinecap="round" />
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="1.100" strokeLinejoin="round" />
+      <rect x="11.500" y="5.500" width="25" height="9" rx="2.500" fill={`url(#${uid}l)`} stroke={EDGE} strokeWidth="1.100" />
+      <path d="M14 8.500H34" stroke="rgba(255,255,255,.35)" strokeWidth="1.200" strokeLinecap="round" />
+    </g>
+  );
+};
 
 const HEAP = [[14, 35], [20, 37], [27, 36], [33, 35], [38, 34], [9, 37], [17, 30], [24, 31], [31, 30], [36, 29], [15, 24], [22, 25], [29, 24], [34, 23], [21, 18], [27, 18], [24, 14], [12, 31]];
 const heap = ([base, grain, kind]) => (
   <g>
-    <path d="M3 41C3 23 13 11 24 11s21 12 21 30z" fill={h(base)} stroke="rgba(0,0,0,.14)" strokeWidth="1.4" />
+    <path d="M3 41C3 23 13 11 24 11s21 12 21 30z" fill={h(base)} stroke="rgba(0,0,0,.26)" strokeWidth="1.400" />
     {HEAP.map(([x, y], i) => {
       const rot = (i * 47) % 180;
       if (kind === 'ball') return <circle key={i} cx={x} cy={y} r="1.6" fill={h(grain)} />;
@@ -276,28 +517,58 @@ const heap = ([base, grain, kind]) => (
   </g>
 );
 
-const carton = ([body, label, , kind]) => (
-  <g>
-    <polygon points="13,17 17,8 31,8 35,17" fill={h(body)} stroke="rgba(0,0,0,.18)" strokeWidth="1.2" strokeLinejoin="round" />
-    <rect x="17" y="5" width="14" height="4" rx="1" fill={h(body)} stroke="rgba(0,0,0,.18)" strokeWidth="1.2" />
-    <rect x="13" y="17" width="22" height="25" rx="2" fill={h(body)} stroke="rgba(0,0,0,.18)" strokeWidth="1.2" />
-    <rect x="13" y="24" width="22" height="12" fill={h(label)} />
-    {kind === 'drop' && <path d="M24 26c3 4 4 5 4 7a4 4 0 0 1-8 0c0-2 1-3 4-7z" fill="#fff" opacity=".9" />}
-    <path d="M16 20v20" stroke={SHINE} strokeWidth="2" strokeLinecap="round" />
-  </g>
-);
+const carton = ([body, label, , kind], uid) => {
+  const d = 'M17 5H31V9L35 17V41A2 2 0 0 1 33 43H15A2 2 0 0 1 13 41V17L17 9Z';
+  return (
+    <g>
+      <defs>
+        <clipPath id={`${uid}c`}><path d={d} /></clipPath>
+        <Grad id={`${uid}g`} a={tone(body, 0.1)} b={tone(body, -0.1)} />
+        <FlatShade id={`${uid}s`} />
+      </defs>
+      <SoftShadow cx={24.0} cy={44.3} rx={12.0} ry={1.7} />
+      <path d={d} fill={`url(#${uid}g)`} />
+      <g clipPath={`url(#${uid}c)`}>
+        <rect x="10" y="24" width="28" height="12" fill={h(label)} />
+        <path d="M10 9H38M10 17H38" stroke="rgba(0,0,0,.14)" strokeWidth=".9" />
+      </g>
+      {kind === 'drop' && <path d="M24 26C27 30 28 31 28 33A4 4 0 0 1 20 33C20 31 21 30 24 26Z" fill="#fff" opacity=".92" />}
+      <path d={d} fill={`url(#${uid}s)`} />
+      <path d="M16 20V40" stroke="rgba(255,255,255,.4)" strokeWidth="1.600" strokeLinecap="round" />
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="1.100" strokeLinejoin="round" />
+    </g>
+  );
+};
 
-const tub = ([body, lid, fruit]) => (
-  <g>
-    <path d="M10 16h28l-3 24a3 3 0 0 1-3 2.6H16a3 3 0 0 1-3-2.6z" fill={h(body)} stroke="rgba(0,0,0,.18)" strokeWidth="1.2" />
-    <rect x="8.5" y="11" width="31" height="6" rx="2.5" fill={h(lid)} />
-    <path d="M11.5 27h25l-.7 6h-23.6z" fill={h(lid)} opacity=".85" />
-    <circle cx="24" cy="30" r="4.2" fill={h(fruit)} stroke="rgba(0,0,0,.2)" strokeWidth="1" />
-    <path d="M15 21v16" stroke={SHINE} strokeWidth="2" strokeLinecap="round" />
-  </g>
-);
+const tub = ([body, lid, fruit], uid) => {
+  const d = 'M10 16H38L35 40A3 3 0 0 1 32 42.600H16A3 3 0 0 1 13 40Z';
+  return (
+    <g>
+      <defs>
+        <clipPath id={`${uid}c`}><path d={d} /></clipPath>
+        <Grad id={`${uid}g`} a={tone(body, 0.12)} b={tone(body, -0.1)} />
+        <Grad id={`${uid}l`} a={tone(lid, 0.22)} b={tone(lid, -0.16)} />
+        <radialGradient id={`${uid}f`} cx=".35" cy=".3" r=".85">
+          <stop offset="0" stopColor={tone(fruit, 0.4)} />
+          <stop offset="1" stopColor={tone(fruit, -0.08)} />
+        </radialGradient>
+        <FlatShade id={`${uid}s`} />
+      </defs>
+      <SoftShadow cx={24.0} cy={44.0} rx={13.0} ry={1.7} />
+      <path d={d} fill={`url(#${uid}g)`} />
+      <g clipPath={`url(#${uid}c)`}>
+        <rect x="6" y="26" width="36" height="9" fill={h(lid)} opacity=".9" />
+      </g>
+      <circle cx="24" cy="30.500" r="4.400" fill={`url(#${uid}f)`} stroke="rgba(0,0,0,.2)" strokeWidth=".9" />
+      <path d={d} fill={`url(#${uid}s)`} />
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="1.100" strokeLinejoin="round" />
+      <rect x="8.500" y="11" width="31" height="6.500" rx="2.500" fill={`url(#${uid}l)`} stroke={EDGE} strokeWidth="1.100" />
+      <path d="M12 13.500H36" stroke="rgba(255,255,255,.4)" strokeWidth="1.200" strokeLinecap="round" />
+    </g>
+  );
+};
 
-const veg = ([kind, c1, c2]) => (
+const veg = ([kind, c1, c2], uid) => (
   <g>
     {kind === 'head' && (
       <>
@@ -381,6 +652,30 @@ const veg = ([kind, c1, c2]) => (
         <ellipse cx="24" cy="6" rx="3.5" ry="4.5" fill={h(c1)} />
       </>
     )}
+    {kind === 'mint' && (
+      <>
+        <path d="M24 46V17" stroke={tone(c2, -0.2)} strokeWidth="2" strokeLinecap="round" fill="none" />
+        {[[24, 37, -64, 5.600, 9], [24, 37, 64, 5.600, 9], [24, 27, -50, 5.200, 8.400], [24, 27, 50, 5.200, 8.400], [24, 19, 0, 5, 8.600]].map(([x, y, a, rx, ry], i) => (
+          <g key={i} transform={`translate(${x} ${y}) rotate(${a})`}>
+            <defs>
+              <clipPath id={`${uid}m${i}`}><path d={leafPath(rx, ry, 26)} /></clipPath>
+              <linearGradient id={`${uid}n${i}`} x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor={tone(c1, 0.22)} />
+                <stop offset="1" stopColor={tone(c1, -0.14)} />
+              </linearGradient>
+            </defs>
+            <path d={leafPath(rx, ry, 26)} fill={`url(#${uid}n${i})`} />
+            <g clipPath={`url(#${uid}m${i})`}>
+              <path d={`M0 0V${-2 * ry}`} stroke={tone(c2, 0.1)} strokeWidth="1.100" fill="none" />
+              {[0.28, 0.5, 0.72].map((f) => (
+                <path key={f} d={`M0 ${-2 * ry * f}Q${rx * 0.6} ${-2 * ry * f - 1.5} ${rx * 1.2} ${-2 * ry * f - 4.500}M0 ${-2 * ry * f}Q${-rx * 0.6} ${-2 * ry * f - 1.5} ${-rx * 1.2} ${-2 * ry * f - 4.500}`} stroke={tone(c2, 0.12)} strokeWidth=".7" fill="none" opacity=".8" />
+              ))}
+            </g>
+            <path d={leafPath(rx, ry, 26)} fill="none" stroke={tone(c1, -0.38)} strokeWidth=".9" strokeLinejoin="round" />
+          </g>
+        ))}
+      </>
+    )}
     {kind === 'clover' && (
       <>
         <path d="M24 42V28" stroke={h(c2)} strokeWidth="2.4" strokeLinecap="round" />
@@ -432,18 +727,26 @@ const veg = ([kind, c1, c2]) => (
   </g>
 );
 
-const dumpling = ([kind, dough, edge, fill]) => (
+const SCALLOP = (() => {
+  let d = 'M4 35C4 19 13 11 24 11S44 19 44 35';
+  for (let x = 44; x > 4; x -= 4) d += `Q${x - 2} 38.800 ${x - 4} 35`;
+  return `${d}Z`;
+})();
+const dumpling = ([kind, dough, edge, fill], uid) => (
   <g>
-    {(kind === 'crescent' || kind === 'fried') && (
+{(kind === 'crescent' || kind === 'fried') && (
       <>
-        <path d="M4 35C4 19 13 11 24 11s20 8 20 24z" fill={h(dough)} stroke={h(edge)} strokeWidth="1.8" strokeLinejoin="round" />
-        <path d="M6 35h36" stroke={h(edge)} strokeWidth="3" strokeDasharray="2.2 2" />
-        {kind === 'fried' && [[16, 24], [26, 19], [32, 27], [22, 29]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="1.8" fill="rgba(255,225,150,.75)" />)}
-        {fill && fill !== 'none' && <ellipse cx="24" cy="22" rx="6.5" ry="3.6" fill={h(fill)} opacity=".9" />}
-        <path d="M11 22c2-5 6-8 11-9" stroke={SHINE} strokeWidth="2" fill="none" strokeLinecap="round" />
+        <defs>
+          <Grad id={`${uid}k`} a={tone(dough, 0.22)} b={tone(dough, -0.14)} />
+        </defs>
+        <ellipse cx="24" cy="40" rx="19" ry="2.200" fill="rgba(0,0,0,.12)" />
+        <path d={SCALLOP} fill={`url(#${uid}k)`} stroke={h(edge)} strokeWidth="1.500" strokeLinejoin="round" />
+        {kind === 'fried' && [[17, 24, -25], [28, 20, 18], [30, 29, -10]].map(([x, y, r]) => <ellipse key={x} cx={x} cy={y} rx="4.500" ry="2.200" transform={`rotate(${r} ${x} ${y})`} fill="rgba(255,225,150,.35)" />)}
+        {fill && fill !== 'none' && <ellipse cx="24" cy="22" rx="6.500" ry="3.600" fill={h(fill)} opacity=".9" />}
+        <path d="M11 23c2-5 6-8 11-9" stroke={SHINE} strokeWidth="2" fill="none" strokeLinecap="round" />
       </>
     )}
-    {kind === 'knot' && (
+        {kind === 'knot' && (
       <>
         <path d="M6 34c0-12 8-19 18-19s18 7 18 19c0 6-6 9-18 9S6 40 6 34z" fill={h(dough)} stroke={h(edge)} strokeWidth="1.8" />
         <path d="M24 15c-8 3-13 10-14 22M24 15c-3 6-4 14-3 26M24 15c3 6 4 14 3 26M24 15c8 3 13 10 14 22" stroke={h(edge)} strokeWidth="1.4" fill="none" />
@@ -473,7 +776,7 @@ const dumpling = ([kind, dough, edge, fill]) => (
 const PLATE = <ellipse cx="24" cy="38" rx="21" ry="6.5" fill="#F6F2EA" stroke="#B9B2A6" strokeWidth="1.3" />;
 const SPOTS = [[14, 30], [22, 33], [30, 31], [35, 34], [18, 25], [26, 27], [32, 24], [22, 20], [28, 18]];
 
-const dish = ([kind, c1, c2, c3]) => (
+const dish = ([kind, c1, c2, c3], uid) => (
   <g>
     {kind !== 'layers' && kind !== 'sticks' && kind !== 'brick' && kind !== 'fold' && kind !== 'fries' && PLATE}
     {kind === 'pasta' && (
@@ -499,7 +802,7 @@ const dish = ([kind, c1, c2, c3]) => (
     )}
     {kind === 'layers' && (
       <>
-        <ellipse cx="24" cy="41" rx="20" ry="3" fill={SHADE} opacity=".3" />
+        <SoftShadow cx={24.0} cy={41.0} rx={20.0} ry={3.0} />
         <path d="M6 18 12 11h32l-6 7z" fill={h(c3)} />
         {[c1, c2, c1, c2].map((c, i) => <rect key={i} x="6" y={18 + i * 5.5} width="32" height="5.5" fill={h(c)} />)}
         <path d="M38 18 44 11v22l-6 7z" fill={h(c1)} /><path d="M38 18 44 11v22l-6 7z" fill={SHADE} opacity=".25" />
@@ -549,7 +852,7 @@ const dish = ([kind, c1, c2, c3]) => (
     )}
     {kind === 'fold' && (
       <>
-        <ellipse cx="24" cy="41" rx="18" ry="3" fill={SHADE} opacity=".3" />
+        <SoftShadow cx={24.0} cy={41.0} rx={18.0} ry={3.0} />
         <path d="M6 36C6 20 16 10 24 10s18 10 18 26z" fill={h(c1)} stroke="rgba(0,0,0,.2)" strokeWidth="1.4" />
         <path d="M24 10c0 10-6 20-18 26M24 10c0 10 6 20 18 26" stroke="rgba(0,0,0,.15)" strokeWidth="1.2" fill="none" />
         <ellipse cx="30" cy="29" rx="6" ry="3" fill={h(c2)} />
@@ -564,6 +867,26 @@ const dish = ([kind, c1, c2, c3]) => (
         {c3 === 'cheese'
           ? [[8, 18], [14, 26]].map(([x, y]) => <path key={x} d={`M${x} ${y}h28l-3 8h-22z`} fill={h(c2)} stroke="rgba(0,0,0,.15)" strokeWidth=".8" />)
           : [[14, 22], [24, 22], [34, 22], [19, 30], [29, 30]].map(([x, y]) => <circle key={x + y} cx={x} cy={y} r="6" fill={h(c2)} stroke="rgba(0,0,0,.2)" strokeWidth="1" />)}
+      </>
+    )}
+    {kind === 'wedges' && (
+      <>
+        {[[24, 16, 4], [17, 24, 8], [31, 23, -10], [13, 32, -12], [25, 33.500, 6], [36, 31, 18]].map(([x, y, r], i) => (
+          <g key={i} transform={`translate(${x} ${y}) rotate(${r})`}>
+            <defs>
+              <linearGradient id={`${uid}w${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor={tone(c1, 0.25)} />
+                <stop offset="1" stopColor={tone(c1, -0.12)} />
+              </linearGradient>
+            </defs>
+            <path d="M-9.500 3C-8.500 -5.500 8.500 -5.500 9.500 3Q0 6.500 -9.500 3Z" fill={`url(#${uid}w${i})`} stroke="rgba(0,0,0,.22)" strokeWidth=".9" strokeLinejoin="round" />
+            <path d="M-9.500 3C-8.500 -5.500 8.500 -5.500 9.500 3" fill="none" stroke={h(c2)} strokeWidth="2.200" strokeLinecap="round" />
+            <path d="M-4.500 0.800Q0 -1.200 4.500 0.800" stroke="rgba(255,255,255,.42)" strokeWidth="1" fill="none" strokeLinecap="round" />
+          </g>
+        ))}
+        {[[21, 20, -20], [29, 28, 30], [17, 31, 10]].map(([x, y, r]) => (
+          <path key={x} transform={`translate(${x} ${y}) rotate(${r})`} d="M-2.600 0C-1.400-1.900 1.400-1.900 2.600 0C1.400 1.900-1.400 1.900-2.600 0Z" fill="#4F9A2E" />
+        ))}
       </>
     )}
     {kind === 'stew' && (
@@ -592,7 +915,7 @@ const salad = ([base, c1, c2, c3]) => (
   </g>
 );
 
-const bread = ([crust, crumb, kind]) => (
+const bread = ([crust, crumb, kind], uid) => (
   <g>
     {(kind === 'slice' || kind === 'seeds') && (
       <>
@@ -607,18 +930,56 @@ const bread = ([crust, crumb, kind]) => (
         <path d="M15 16c3-2 8-2 12-1" stroke={SHINE} strokeWidth="2" fill="none" strokeLinecap="round" />
       </>
     )}
-    {kind === 'loaf' && (
-      <>
-        <rect x="3" y="15" width="42" height="19" rx="9.5" transform="rotate(-18 24 24)" fill={h(crumb)} stroke={h(crust)} strokeWidth="1.5" />
-        {[[13, 29], [21, 26], [29, 23], [37, 20]].map(([x, y]) => <path key={x} d={`M${x} ${y + 3}l3-8`} stroke={h(crust)} strokeWidth="2.4" strokeLinecap="round" />)}
-      </>
-    )}
-    {kind === 'long' && (
-      <>
-        <rect x="2" y="19" width="44" height="12" rx="6" transform="rotate(-25 24 25)" fill={h(crumb)} stroke={h(crust)} strokeWidth="1.5" />
-        {[[11, 33], [18, 29], [25, 26], [32, 22], [38, 19]].map(([x, y]) => <path key={x} d={`M${x} ${y + 2.5}l2.4-6`} stroke={h(crust)} strokeWidth="2" strokeLinecap="round" />)}
-      </>
-    )}
+{(kind === 'loaf' || kind === 'long') && (() => {
+      const long = kind === 'long';
+      const d = long ? 'M7 18.500H41A5.500 5.500 0 0 1 41 29.500H7A5.500 5.500 0 0 1 7 18.500Z' : 'M10 16H38A8 8 0 0 1 38 32H10A8 8 0 0 1 10 16Z';
+      const marks = long ? [12, 18.500, 25, 31.500, 38] : [14, 21, 28, 35];
+      return (
+        <g transform={`rotate(${long ? -24 : -18} 24 24)`}>
+          <defs>
+            <linearGradient id={`${uid}l`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor={tone(crust, 0.3)} />
+              <stop offset=".5" stopColor={h(crust)} />
+              <stop offset="1" stopColor={tone(crust, -0.26)} />
+            </linearGradient>
+          </defs>
+          <path d={d} fill={`url(#${uid}l)`} />
+          {marks.map((x) => (
+            <g key={x} transform={`translate(${x} 24) rotate(58)`}>
+              <ellipse rx={long ? 4.600 : 4.800} ry={long ? 1.500 : 1.900} fill={tone(crumb, 0.1)} stroke="rgba(110,60,15,.3)" strokeWidth=".7" />
+            </g>
+          ))}
+          <path d={long ? 'M11 21H37' : 'M12 18.500H36'} stroke="rgba(255,255,255,.3)" strokeWidth="1.600" strokeLinecap="round" />
+          <path d={d} fill="none" stroke="rgba(90,45,10,.5)" strokeWidth="1.200" strokeLinejoin="round" />
+        </g>
+      );
+    })()}
+        {kind === 'crisp' && [[14, 5], [6, 14]].map(([x, y], i) => (
+      <g key={i} transform={`translate(${x} ${y})`}>
+        <defs>
+          <clipPath id={`${uid}k${i}`}><rect width="26" height="26" rx="3.500" /></clipPath>
+          <linearGradient id={`${uid}j${i}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor={tone(crumb, 0.2)} />
+            <stop offset="1" stopColor={`#${crust}`} />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="3" width="26" height="26" rx="3.500" fill={tone(crust, -0.34)} />
+        <rect width="26" height="26" rx="3.500" fill={`url(#${uid}j${i})`} />
+        <g clipPath={`url(#${uid}k${i})`}>
+          <path d="M-1 8C6 6 10 10 16 8S23 7 27 9M-1 17C5 15 11 19 17 17S24 16 27 18" stroke="rgba(120,70,20,.22)" strokeWidth="1.100" fill="none" />
+          {[[5, 5, 1.400, 0.800, 20], [14, 4, 1.100, 0.700, -10], [21, 8, 1.500, 0.900, 35], [8, 12, 1.200, 0.700, 5], [17, 14, 1.600, 0.900, -25], [4, 20, 1.300, 0.800, 15], [12, 21, 1.500, 0.800, 0], [22, 20, 1.200, 0.700, 30], [18, 23, 0.900, 0.600, 0]].map(([px, py, rx, ry, r]) => (
+            <g key={px + py}>
+              <ellipse cx={px} cy={py + 0.5} rx={rx} ry={ry} fill="rgba(255,240,200,.55)" transform={`rotate(${r} ${px} ${py})`} />
+              <ellipse cx={px} cy={py} rx={rx} ry={ry} fill="rgba(110,60,15,.5)" transform={`rotate(${r} ${px} ${py})`} />
+            </g>
+          ))}
+          {[[8, 7], [16, 9], [22, 14], [12, 17], [6, 24], [24, 24], [15, 26]].map(([px, py], k) => (
+            <ellipse key={px + py} cx={px} cy={py} rx="1.700" ry=".8" transform={`rotate(${k * 47} ${px} ${py})`} fill={tone(crumb, 0.4)} />
+          ))}
+        </g>
+        <rect width="26" height="26" rx="3.500" fill="none" stroke="rgba(110,60,15,.5)" strokeWidth="1.100" />
+      </g>
+    ))}
     {kind === 'cubes' && [[12, 30, 12], [26, 33, -10], [34, 21, 20], [18, 18, -15], [27, 12, 8]].map(([x, y, r]) => (
       <g key={x + y}>
         <rect x={x - 6} y={y - 6} width="12" height="12" rx="2.6" transform={`rotate(${r} ${x} ${y})`} fill={h(crumb)} stroke={h(crust)} strokeWidth="1.6" />
@@ -781,7 +1142,17 @@ const icecream = ([kind, c1, c2]) => (
   </g>
 );
 
-const egg = ([kind, c1, c2]) => (
+const OMELET = (() => {
+  const pts = [];
+  const N = 96;
+  for (let i = 0; i < N; i += 1) {
+    const t = (i / N) * Math.PI * 2;
+    const r = 1 + 0.07 * Math.sin(5 * t + 1) + 0.05 * Math.sin(7 * t + 2.3) + 0.035 * Math.sin(3 * t + 0.4);
+    pts.push(`${(24 + 19.5 * r * Math.cos(t)).toFixed(2)} ${(25 + 13.5 * r * Math.sin(t)).toFixed(2)}`);
+  }
+  return `M${pts.join('L')}Z`;
+})();
+const egg = ([kind, c1, c2], uid) => (
   <g>
     {kind === 'half' && (
       <>
@@ -815,16 +1186,33 @@ const egg = ([kind, c1, c2]) => (
     )}
     {kind === 'omelet' && (
       <>
-        <path d="M4 33C4 17 13 9 24 9s20 8 20 24c0 3-3 4-6 4H10c-3 0-6-1-6-4z" fill={h(c1)} stroke="rgba(0,0,0,.2)" strokeWidth="1.4" />
-        <path d="M24 9c0 8-4 17-14 28M24 9c0 8 4 17 14 28" stroke="rgba(150,90,10,.25)" strokeWidth="1.3" fill="none" />
-        {[[15, 25], [31, 26], [23, 31]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="1.5" fill={h(c2)} />)}
-        <path d="M11 20c3-5 7-7 12-8" stroke={SHINE} strokeWidth="2" fill="none" strokeLinecap="round" />
+        <defs>
+          <clipPath id={`${uid}o`}><path d={OMELET} /></clipPath>
+          <radialGradient id={`${uid}og`} cx=".42" cy=".38" r=".75">
+            <stop offset="0" stopColor={tone(c1, 0.4)} />
+            <stop offset=".7" stopColor={`#${c1}`} />
+            <stop offset="1" stopColor={tone(c1, -0.14)} />
+          </radialGradient>
+        </defs>
+        <ellipse cx="24" cy="41.500" rx="19" ry="2.200" fill="rgba(0,0,0,.12)" />
+        <path d={OMELET} fill={`url(#${uid}og)`} />
+        <g clipPath={`url(#${uid}o)`}>
+          {[[11, 29, 7, 3.200, -20], [33, 31, 7.500, 3, 15], [28, 17, 6, 2.600, 25], [15, 18, 5, 2.200, -30]].map(([x, y, rx, ry, r]) => (
+            <ellipse key={x} cx={x} cy={y} rx={rx} ry={ry} transform={`rotate(${r} ${x} ${y})`} fill="rgba(196,112,22,.3)" />
+          ))}
+          <path d="M8 27C17 21 31 21 40 28" stroke="rgba(176,98,18,.3)" strokeWidth="1.600" fill="none" strokeLinecap="round" />
+          {[[17, 25, -25], [26, 28, 30], [31, 22, -10]].map(([x, y, r]) => (
+            <path key={x} transform={`translate(${x} ${y}) rotate(${r})`} d="M-3.200 0C-1.700-2.400 1.700-2.400 3.200 0C1.700 2.400-1.700 2.400-3.200 0Z" fill={`#${c2}`} stroke={tone(c2, -0.3)} strokeWidth=".5" />
+          ))}
+          <ellipse cx="17" cy="16.500" rx="8" ry="2.200" fill="rgba(255,255,255,.4)" transform="rotate(-18 17 16.500)" />
+        </g>
+        <path d={OMELET} fill="none" stroke={tone(c1, -0.4)} strokeWidth="1.300" strokeLinejoin="round" />
       </>
     )}
   </g>
 );
 
-const fruit = ([kind, c1, c2, c3]) => (
+const fruit = ([kind, c1, c2, c3], uid) => (
   <g>
     {kind === 'bunch' && (
       <>
@@ -862,14 +1250,20 @@ const fruit = ([kind, c1, c2, c3]) => (
         <path d="M13 22c2-5 6-8 11-8" stroke={SHINE} strokeWidth="2.400" fill="none" strokeLinecap="round" />
       </>
     )}
-    {kind === 'dried' && [[0, 0, 1], [14, 12, 0.6]].map(([dx, dy, k]) => (
+{kind === 'dried' && [[0, 0, 1], [15, 11, 0.62]].map(([dx, dy, k], i) => (
       <g key={dx} transform={`translate(${dx - (k < 1 ? 0 : 3)} ${dy}) scale(${k})`}>
-        <path d="M6 26c-2-9 6-16 16-15s17 8 15 17c-2 8-10 11-18 10-8-1-12-5-13-12z" fill={h(c1)} stroke={h(c2)} strokeWidth="1.600" />
-        <path d="M12 22c3-3 6-3 9-1M16 31c4-2 8-1 12 1M25 17c3 1 5 3 6 6" stroke={h(c2)} strokeWidth="1.200" fill="none" strokeLinecap="round" opacity=".8" />
-        <path d="M11 18c3-3 7-4 11-3" stroke={SHINE} strokeWidth="1.800" fill="none" strokeLinecap="round" />
+        <defs>
+          <radialGradient id={`${uid}d${i}`} cx=".38" cy=".3" r=".85">
+            <stop offset="0" stopColor={tone(c1, 0.3)} />
+            <stop offset="1" stopColor={tone(c1, -0.22)} />
+          </radialGradient>
+        </defs>
+        <path d="M6 26c-2-9 6-16 16-15s17 8 15 17c-2 8-10 11-18 10-8-1-12-5-13-12z" fill={`url(#${uid}d${i})`} stroke={tone(c2, 0)} strokeWidth="1.500" strokeLinejoin="round" />
+        <path d="M13 20c2-1.500 5-1.800 7-.6M24 32c3 .8 6 .2 8-1.600" stroke={tone(c2, 0.1)} strokeWidth="1.100" fill="none" strokeLinecap="round" opacity=".55" />
+        <path d="M11 18c3-3 7-4 11-3" stroke="rgba(255,255,255,.45)" strokeWidth="1.800" fill="none" strokeLinecap="round" />
       </g>
     ))}
-    {kind === 'pair' && (
+        {kind === 'pair' && (
       <>
         <path d="M16 34C17 20 22 12 25 5M32 36C32 22 28 12 25 5" stroke={h(c2)} strokeWidth="2" fill="none" strokeLinecap="round" />
         <path d="M26 6c5-3 11-1 13 3-5 3-10 2-13-3z" fill={h(c2)} />
@@ -909,14 +1303,28 @@ const fruit = ([kind, c1, c2, c3]) => (
         <circle cx="33" cy="30" r="10" fill="#FFF8EA" stroke="#E3D5C0" strokeWidth="1.200" /><circle cx="33" cy="30" r="3.500" fill="#7A4A2E" />
       </>
     )}
-    {kind === 'zuc' && (
-      <>
-        <rect x="4" y="17" width="40" height="15" rx="7.500" transform="rotate(-28 24 24)" fill={h(c1)} stroke="rgba(0,0,0,.2)" strokeWidth="1.300" />
-        <path d="M11 34c8-6 20-14 28-19M9 29c8-5 18-12 26-17" stroke={h(c2)} strokeWidth="1.400" fill="none" opacity=".6" />
-        <path d="M37 11l4-4" stroke="#5E8F2E" strokeWidth="3.500" strokeLinecap="round" />
-      </>
+{kind === 'zuc' && (
+      <g transform="rotate(-26 24 24)">
+        <defs>
+          <clipPath id={`${uid}z`}><path d="M6 24.500C6 19 9.500 16 15 16H36C40 16 43 19 43 24.500S40 33 36 33H15C9.500 33 6 30 6 24.500Z" /></clipPath>
+          <linearGradient id={`${uid}zg`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={tone(c1, 0.25)} />
+            <stop offset=".5" stopColor={`#${c1}`} />
+            <stop offset="1" stopColor={tone(c1, -0.28)} />
+          </linearGradient>
+        </defs>
+        <path d="M38 21C41 19 44 18.500 46 19.500C47.500 21.500 47.500 27.500 46 29.500C44 30.500 41 30 38 28Z" fill={tone(c1, -0.5)} />
+        <path d="M6 24.500C6 19 9.500 16 15 16H36C40 16 43 19 43 24.500S40 33 36 33H15C9.500 33 6 30 6 24.500Z" fill={`url(#${uid}zg)`} />
+        <g clipPath={`url(#${uid}z)`}>
+          <path d="M8 21C18 19.800 30 19.800 42 21" stroke={`#${c2}`} strokeWidth="1.100" fill="none" opacity=".6" />
+          <path d="M8 27.500C18 29 30 29 42 27.500" stroke={tone(c1, -0.3)} strokeWidth="1.200" fill="none" opacity=".5" />
+          <path d="M10 24.500H41" stroke={`#${c2}`} strokeWidth=".9" fill="none" opacity=".4" />
+          <path d="M11 18.800H36" stroke="rgba(255,255,255,.4)" strokeWidth="2" strokeLinecap="round" />
+        </g>
+        <path d="M6 24.500C6 19 9.500 16 15 16H36C40 16 43 19 43 24.500S40 33 36 33H15C9.500 33 6 30 6 24.500Z" fill="none" stroke={tone(c1, -0.46)} strokeWidth="1.100" />
+      </g>
     )}
-    {kind === 'root' && (
+        {kind === 'root' && (
       <>
         <path d="M24 10c-3-5-8-6-10-10M24 10c3-5 8-6 10-10M24 10V0" stroke={h(c2)} strokeWidth="2.200" strokeLinecap="round" fill="none" />
         <path d="M24 8c8 0 10 5 9 11-1 10-5 20-9 26-4-6-8-16-9-26-1-6 1-11 9-11z" fill={h(c1)} stroke="rgba(0,0,0,.2)" strokeWidth="1.300" />
@@ -929,14 +1337,30 @@ const fruit = ([kind, c1, c2, c3]) => (
         {[[16, 24], [24, 18], [32, 24], [20, 30], [28, 30], [24, 25]].map(([x, y]) => <g key={x + y}><circle cx={x} cy={y} r="7" fill={h(c1)} stroke="rgba(0,0,0,.15)" strokeWidth="1" /><circle cx={x - 2} cy={y - 2} r="1.400" fill="rgba(255,255,255,.7)" /></g>)}
       </>
     )}
-    {kind === 'spears' && [[11, 0], [19, 4], [28, 4], [36, 0]].map(([x, dy]) => (
-      <g key={x}>
-        <rect x={x - 2.800} y={12 + dy} width="5.600" height={32 - dy} rx="2.800" fill={h(c1)} stroke="rgba(0,0,0,.18)" strokeWidth="1" />
-        <path d={`M${x - 2.800} ${14 + dy}c0-5 1.500-8 2.800-9 1.300 1 2.800 4 2.800 9z`} fill={h(c2)} />
-        <path d={`M${x - 2} ${18 + dy}h4`} stroke={h(c2)} strokeWidth="1" />
-      </g>
-    ))}
-    {kind === 'olive' && [[15, 28, -20], [32, 26, 25]].map(([x, y, r]) => (
+{kind === 'spears' && [[-14, 38], [14, 36], [-4.5, 41], [5, 40]].map(([a, L], i) => {
+      const d = `M-3.200 0V${-(L - 11)}C-3.200 ${-(L - 5)} -1.900 ${-(L - 1.5)} 0 ${-L}C1.900 ${-(L - 1.5)} 3.200 ${-(L - 5)} 3.200 ${-(L - 11)}V0Z`;
+      return (
+        <g key={a} transform={`translate(24 46) rotate(${a})`}>
+          <defs>
+            <clipPath id={`${uid}p${i}`}><path d={d} /></clipPath>
+            <linearGradient id={`${uid}q${i}`} x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stopColor={tone(c1, 0.55)} />
+              <stop offset=".45" stopColor={c1.startsWith('#') ? c1 : `#${c1}`} />
+              <stop offset="1" stopColor={`#${c2}`} />
+            </linearGradient>
+          </defs>
+          <path d={d} fill={`url(#${uid}q${i})`} />
+          <g clipPath={`url(#${uid}p${i})`}>
+            {[0, 1, 2].map((k) => (
+              <path key={k} d={`M-3.400 ${-(L - 5 - k * 3.600)}Q0 ${-(L - 8 - k * 3.600)} 3.400 ${-(L - 5 - k * 3.600)}`} stroke={tone(c2, -0.3)} strokeWidth=".9" fill="none" opacity=".75" />
+            ))}
+            <path d={`M-1.700 -2V${-(L - 12)}`} stroke="rgba(255,255,255,.35)" strokeWidth="1.300" strokeLinecap="round" fill="none" />
+          </g>
+          <path d={d} fill="none" stroke={tone(c1, -0.4)} strokeWidth=".9" strokeLinejoin="round" />
+        </g>
+      );
+    })}
+        {kind === 'olive' && [[15, 28, -20], [32, 26, 25]].map(([x, y, r]) => (
       <g key={x}>
         <ellipse cx={x} cy={y} rx="10" ry="13" transform={`rotate(${r} ${x} ${y})`} fill={h(c1)} stroke="rgba(0,0,0,.25)" strokeWidth="1.200" />
         <ellipse cx={x} cy={y - 6} rx="3.600" ry="2.800" fill={h(c2)} />
@@ -1012,7 +1436,7 @@ const drinkware = ([kind, liquid, extra]) => (
 
 const sushi = ([kind, c1, c2]) => (
   <g>
-    <ellipse cx="24" cy="40" rx="20" ry="4" fill="rgba(0,0,0,.15)" />
+    <SoftShadow cx={24.0} cy={40.0} rx={20.0} ry={4.0} />
     {kind === 'maki' && [[15, 26], [33, 26]].map(([x, y]) => (
       <g key={x}>
         <circle cx={x} cy={y} r="11" fill="#2B3A33" /><circle cx={x} cy={y} r="8.500" fill="#FBF8F0" />
@@ -1050,25 +1474,220 @@ const skewer = ([kind, c1, c2]) => (
   </g>
 );
 
-const tin = ([body, label, fill]) => (
-  <g>
-    <rect x="7" y="14" width="34" height="27" rx="4" fill={h(body)} stroke="rgba(0,0,0,.25)" strokeWidth="1.200" />
-    <rect x="7" y="20" width="34" height="15" fill={h(label)} />
-    <path d="M12 25h14M12 29h9" stroke="rgba(255,255,255,.7)" strokeWidth="1.600" strokeLinecap="round" />
-    <ellipse cx="24" cy="14" rx="17" ry="4.500" fill="#D8DCE0" stroke="#9AA0A6" strokeWidth="1.200" />
-    {fill && fill !== 'none' && <ellipse cx="24" cy="14" rx="13" ry="3.200" fill={h(fill)} />}
-  </g>
-);
+const tin = ([body, label, fill], uid) => {
+  const d = 'M7 14A17 4.500 0 0 1 41 14V37A4 4 0 0 1 37 41H11A4 4 0 0 1 7 37Z';
+  return (
+    <g>
+      <defs>
+        <clipPath id={`${uid}c`}><path d={d} /></clipPath>
+        <Grad id={`${uid}g`} a={tone(body, 0.18)} b={tone(body, -0.2)} />
+        <Grad id={`${uid}l`} a="#EEF1F4" b="#B3BAC2" />
+        <CylShade id={`${uid}s`} />
+      </defs>
+      <SoftShadow cx={24.0} cy={43.2} rx={18.0} ry={2.0} />
+      <path d={d} fill={`url(#${uid}g)`} />
+      <g clipPath={`url(#${uid}c)`}>
+        <rect x="4" y="21" width="40" height="14" fill={h(label)} />
+        <path d="M4 21H44M4 35H44" stroke="rgba(0,0,0,.14)" strokeWidth=".8" />
+      </g>
+      <path d={d} fill={`url(#${uid}s)`} />
+      <path d="M11 22V38" stroke="rgba(255,255,255,.4)" strokeWidth="1.800" strokeLinecap="round" />
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="1.100" strokeLinejoin="round" />
+      <ellipse cx="24" cy="14" rx="17" ry="4.500" fill={`url(#${uid}l)`} stroke="rgba(0,0,0,.3)" strokeWidth=".9" />
+      {fill && fill !== 'none' && <ellipse cx="24" cy="14" rx="13.500" ry="3.200" fill={h(fill)} stroke="rgba(0,0,0,.18)" strokeWidth=".8" />}
+    </g>
+  );
+};
 
-const templates = { bar, slice, roll, bowl, cut, mince, drum, fish, can, glass, mug, cup, cookie, sweet, jar, heap, carton, tub, veg, dumpling, dish, salad, bread, wurst, burger, pizza, icecream, egg, fruit, nut, drinkware, sushi, skewer, tin };
+const cheese = ([kind, body, rind, holes, extra], uid) => {
+  const n = Number(holes) || 0;
+  const ref = (k) => `url(#${uid}${k})`;
+  if (kind === 'block') {
+    const HOLES = [[12, 29.5, 3.4, 3], [22, 35, 4.3, 3.6], [27.5, 26.5, 2.6, 2.3], [14.5, 38.2, 2.2, 1.7], [30.5, 38, 2.4, 2.1]].slice(0, n);
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}f`}><path d={BLK.front} /></clipPath>
+          <clipPath id={`${uid}t`}><path d={BLK.top} /></clipPath>
+          <Grad id={`${uid}F`} a={tone(body, 0.12)} b={tone(body, -0.12)} />
+          <Grad id={`${uid}T`} a={tone(body, 0.4)} b={tone(body, 0.2)} />
+          <Grad id={`${uid}S`} a={tone(rind, -0.06)} b={tone(rind, -0.32)} />
+          <Grad id={`${uid}H`} a={tone(body, -0.4)} b={tone(body, -0.2)} />
+        </defs>
+        <FloorShadow />
+        <path d={BLK.front} fill={ref('F')} />
+        <path d={BLK.side} fill={ref('S')} />
+        <path d={BLK.top} fill={ref('T')} />
+        <g clipPath={ref('f')}>
+          {HOLES.map(([x, y, rx, ry]) => (
+            <g key={x}>
+              <ellipse cx={x} cy={y + 0.9} rx={rx} ry={ry} fill={tone(body, 0.4)} opacity=".7" />
+              <ellipse cx={x} cy={y} rx={rx} ry={ry} fill={ref('H')} />
+            </g>
+          ))}
+          {extra === 'veins' && (
+            <>
+              <path d="M7 26C11 28 12 32 16 32S21 28 25 29 28 34 32 35M6 37C9 35 12 37 15 36S19 32 23 33" stroke="rgba(63,122,138,.28)" strokeWidth="3.200" fill="none" strokeLinecap="round" />
+              <path d="M7 26C11 28 12 32 16 32S21 28 25 29 28 34 32 35M6 37C9 35 12 37 15 36S19 32 23 33" stroke="#3F7A8A" strokeWidth="1.500" fill="none" strokeLinecap="round" />
+            </>
+          )}
+          {extra === 'cracks' && <path d="M9 24L13 29L11 34L16 38M24 22L22 27L27 31" stroke="rgba(0,0,0,.2)" strokeWidth="1" fill="none" strokeLinejoin="round" />}
+          {extra === 'layers' && <path d="M5 26Q10 28 14 26T23 26T32 26M5 31Q10 33 14 31T23 31T32 31M5 36Q10 38 14 36T23 36T32 36" stroke="rgba(0,0,0,.1)" strokeWidth="1" fill="none" />}
+        </g>
+        <g clipPath={ref('t')}>
+          {n > 1 && <ellipse cx="27" cy="16.500" rx="2.600" ry="1" fill={tone(body, -0.25)} />}
+          {extra === 'veins' && <path d="M14 18C19 17 22 19 27 17S34 15 40 16" stroke="#3F7A8A" strokeWidth="1.300" fill="none" strokeLinecap="round" />}
+          {extra === 'grill' && (
+            <>
+              <path d="M11 21L21.500 12M20 21L30.500 12M29 21L39.500 12" stroke="#9A5B24" strokeWidth="2.600" fill="none" opacity=".85" />
+            </>
+          )}
+        </g>
+        <BlockOutline />
+      </g>
+    );
+  }
+  if (kind === 'aspic') {
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}f`}><path d={BLK.front} /></clipPath>
+          <Grad id={`${uid}F`} a={tone(body, 0.26)} b={tone(body, -0.08)} />
+          <Grad id={`${uid}T`} a={tone(body, 0.5)} b={tone(body, 0.3)} />
+          <Grad id={`${uid}S`} a={tone(rind, -0.05)} b={tone(rind, -0.3)} />
+        </defs>
+        <FloorShadow />
+        <path d={BLK.front} fill={ref('F')} />
+        <path d={BLK.side} fill={ref('S')} />
+        <path d={BLK.top} fill={ref('T')} />
+        <g clipPath={ref('f')}>
+          <path d="M5 23H32" stroke="rgba(255,255,255,.45)" strokeWidth="2" strokeLinecap="round" />
+          {[[10.500, 36.500, 5.500, 3.300, -12, 'A9663C'], [20, 38.500, 5.200, 3.100, 8, '8F5230'], [29, 35.500, 4.800, 3, -6, 'B9743C']].map(([x, y, rx, ry, r, c]) => (
+            <g key={x}>
+              <ellipse cx={x} cy={y} rx={rx} ry={ry} transform={`rotate(${r} ${x} ${y})`} fill={`#${c}`} stroke="rgba(60,25,10,.35)" strokeWidth=".8" />
+              <ellipse cx={x - 1} cy={y - 1.200} rx={rx * 0.5} ry={ry * 0.35} transform={`rotate(${r} ${x} ${y})`} fill="rgba(255,255,255,.3)" />
+            </g>
+          ))}
+          {[[15, 31.500, 2.900], [25.500, 31, 2.600]].map(([x, y, r]) => (
+            <g key={x}>
+              <circle cx={x} cy={y} r={r} fill="#F28C28" stroke="#D9701A" strokeWidth=".8" />
+              <circle cx={x} cy={y} r={r * 0.42} fill="#F8B866" />
+            </g>
+          ))}
+          <ellipse cx="31" cy="39" rx="3.200" ry="2.300" fill="#FFF8EA" stroke="rgba(0,0,0,.18)" strokeWidth=".7" />
+          <ellipse cx="31" cy="39" rx="1.300" ry="1" fill="#F2A81D" />
+        </g>
+        <BlockOutline />
+      </g>
+    );
+  }
+  if (kind === 'sheet') {
+    const slab = (dx, dy) => (
+      <g transform={`translate(${dx} ${dy})`}>
+        <path d="M6 33H32V38H6Z" fill={tone(body, -0.04)} />
+        <path d="M32 33L42 25V30L32 38Z" fill={tone(rind, -0.25)} />
+        <path d="M6 33L16 25H42L32 33Z" fill={tone(body, 0.3)} />
+        <path d="M6 33L16 25H42V30L32 38H6Z" fill="none" stroke="rgba(0,0,0,.3)" strokeWidth="1.200" strokeLinejoin="round" />
+        <path d="M6 33H32L42 25M32 33V38" fill="none" stroke="rgba(0,0,0,.14)" strokeWidth=".8" />
+      </g>
+    );
+    return <g><FloorShadow />{slab(0, 4)}{slab(3, -6)}</g>;
+  }
+  if (kind === 'balls') {
+    return (
+      <g>
+        <defs>
+          <radialGradient id={`${uid}m`} cx=".35" cy=".3" r=".85">
+            <stop offset="0" stopColor="#fff" />
+            <stop offset=".6" stopColor={`#${body}`} />
+            <stop offset="1" stopColor={tone(rind, -0.1)} />
+          </radialGradient>
+        </defs>
+        <FloorShadow />
+        {[[24, 17, 9.500], [14.500, 32, 10], [33.500, 32, 10]].map(([x, y, r]) => (
+          <g key={x}>
+            <circle cx={x} cy={y} r={r} fill={ref('m')} stroke="rgba(0,0,0,.22)" strokeWidth="1" />
+            <ellipse cx={x - r * 0.35} cy={y - r * 0.42} rx={r * 0.28} ry={r * 0.16} fill="rgba(255,255,255,.85)" transform={`rotate(-30 ${x - r * 0.35} ${y - r * 0.42})`} />
+          </g>
+        ))}
+      </g>
+    );
+  }
+  if (kind === 'wheel') {
+    const R = 18;
+    const cx = 24;
+    const cy = 25;
+    const wax = extra === 'wax';
+    const a0 = -n * 0.4;
+    const a1 = n * 0.6;
+    const pt = (deg, r) => [cx + r * Math.cos((deg * Math.PI) / 180), cy + r * Math.sin((deg * Math.PI) / 180)];
+    const [x0, y0] = pt(a0, R + 2);
+    const [x1, y1] = pt(a1, R + 2);
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}w`}><circle cx={cx} cy={cy} r={R} /></clipPath>
+          <radialGradient id={`${uid}rg`} cx=".35" cy=".3" r=".9">
+            <stop offset="0" stopColor={tone(rind, 0.3)} />
+            <stop offset="1" stopColor={tone(rind, -0.18)} />
+          </radialGradient>
+          <radialGradient id={`${uid}bg`} cx=".35" cy=".3" r=".9">
+            <stop offset="0" stopColor={tone(body, 0.32)} />
+            <stop offset="1" stopColor={tone(body, -0.06)} />
+          </radialGradient>
+        </defs>
+        <SoftShadow cx={24.0} cy={44.0} rx={17.0} ry={2.2} />
+        <circle cx={cx} cy={cy} r={R} fill={ref('rg')} />
+        <circle cx={cx} cy={cy} r={wax ? 14.200 : 15.600} fill={ref('bg')} />
+        {n > 0 && (
+          <g clipPath={ref('w')}>
+            <path d={`M${cx} ${cy}L${x0} ${y0}A${R + 2} ${R + 2} 0 0 1 ${x1} ${y1}Z`} fill={tone(body, -0.12)} />
+            <path d={`M${x0} ${y0}L${cx} ${cy}L${x1} ${y1}`} fill="none" stroke="rgba(0,0,0,.22)" strokeWidth="1" strokeLinejoin="round" />
+          </g>
+        )}
+        <path d="M11 20A14 14 0 0 1 21 11.500" stroke="rgba(255,255,255,.45)" strokeWidth="1.700" fill="none" strokeLinecap="round" />
+        <circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(0,0,0,.26)" strokeWidth="1.200" />
+      </g>
+    );
+  }
+  if (kind === 'boat') {
+    const boat = 'M3 25C10 12 38 12 45 25C38 38 10 38 3 25Z';
+    return (
+      <g>
+        <defs>
+          <Grad id={`${uid}c`} a={tone(body, 0.22)} b={tone(body, -0.22)} />
+          <radialGradient id={`${uid}ch`} cx=".4" cy=".35" r=".8">
+            <stop offset="0" stopColor={tone(rind, 0.3)} />
+            <stop offset="1" stopColor={tone(rind, -0.08)} />
+          </radialGradient>
+          <radialGradient id={`${uid}y`} cx=".35" cy=".3" r=".85">
+            <stop offset="0" stopColor={tone(holes, 0.45)} />
+            <stop offset="1" stopColor={tone(holes, -0.1)} />
+          </radialGradient>
+        </defs>
+        <FloorShadow />
+        <path d={boat} fill={ref('c')} />
+        <path d="M10.500 25C16 18 32 18 37.500 25C32 32 16 32 10.500 25Z" fill={ref('ch')} />
+        <path d="M10.500 25C16 18 32 18 37.500 25C32 32 16 32 10.500 25Z" fill="none" stroke="rgba(0,0,0,.2)" strokeWidth="1" />
+        <circle cx="24" cy="25" r="5.600" fill={ref('y')} stroke="rgba(0,0,0,.2)" strokeWidth=".9" />
+        <ellipse cx="22.200" cy="23.200" rx="1.800" ry="1.100" fill="rgba(255,255,255,.6)" />
+        <path d={boat} fill="none" stroke="rgba(90,45,10,.5)" strokeWidth="1.200" strokeLinejoin="round" />
+      </g>
+    );
+  }
+  return null;
+};
+
+const templates = { bar, slice, roll, bowl, cut, mince, drum, fish, can, glass, mug, cup, cookie, sweet, jar, heap, carton, tub, veg, dumpling, dish, salad, bread, wurst, burger, pizza, icecream, egg, fruit, nut, drinkware, sushi, skewer, tin, cheese };
 
 export function ParamIcon({ icon }) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const [name, ...params] = icon.slice(4).split(':');
   const Template = templates[name];
   if (!Template) return null;
   return (
     <svg viewBox="0 0 48 48" width="1.2em" height="1.2em" aria-hidden="true" focusable="false">
-      {Template(params)}
+      {Template(params, uid)}
     </svg>
   );
 }

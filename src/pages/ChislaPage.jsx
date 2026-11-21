@@ -101,6 +101,20 @@ function MacroRings({ rows }) {
   );
 }
 
+// Соусы к фастфуду: в окне порций показываются мини-иконками и названиями, а в тарелку попадают отдельными строками (порция 25 г)
+const SAUCE_UI = [
+  { id: 'ketchup', name: 'Кетчуп' },
+  { id: 'mayo', name: 'Майонез' },
+  { id: 'cheese_sauce', name: 'Сырный' },
+  { id: 'garlic_sauce', name: 'Чесночный' },
+  { id: 'bbq', name: 'Барбекю' },
+  { id: 'sweet_chili', name: 'Кисло-сладкий' },
+  { id: 'mustard', name: 'Горчица' },
+  { id: 'hot_sauce', name: 'Острый' },
+];
+const SAUCE_HOSTS = new Set(['hamburger', 'cheeseburger', 'bigmac', 'chicken_burger', 'hotdog', 'nuggets', 'fries', 'potato_rustic', 'shawarma', 'taco']);
+const sauceIndex = (id) => foodById[id]?.portions.findIndex((p) => p.label === 'Порция соуса') ?? -1;
+
 function LactoseSwitch({ checked, onChange }) {
   return (
     <button
@@ -231,7 +245,9 @@ function PortionList({ item, expanded, close, onChoose }) {
   const chosen = useRef(false);
   const [variant, setVariant] = useState(item.variants?.defaultId ?? null);
   const [lf, setLf] = useState(false);
+  const [sauces, setSauces] = useState([]);
   const current = resolveFood(item, { variant, lf });
+  const toggleSauce = (id) => setSauces((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   useEffect(() => {
     if (!expanded || window.matchMedia?.('(pointer: coarse)').matches) return;
@@ -241,7 +257,7 @@ function PortionList({ item, expanded, close, onChoose }) {
   const choose = (index) => {
     if (chosen.current) return;
     chosen.current = true;
-    onChoose(index, { variant: current.variantId, lf: current.lf });
+    onChoose(index, { variant: current.variantId, lf: current.lf, sauces });
     close();
   };
 
@@ -284,6 +300,33 @@ function PortionList({ item, expanded, close, onChoose }) {
         <div className="mb-1">
           <LactoseSwitch checked={lf} onChange={setLf} />
           {lf && <p className="text-sm text-slate-500">Калорийность почти не меняется.</p>}
+        </div>
+      )}
+
+      {SAUCE_HOSTS.has(item.id) && (
+        <div className="mb-2">
+          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Соусы</div>
+          <div className="grid grid-cols-5 gap-1.5">
+            {SAUCE_UI.filter((sauce) => sauceIndex(sauce.id) >= 0).map((sauce) => {
+              const on = sauces.includes(sauce.id);
+              return (
+                <button
+                  key={sauce.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => toggleSauce(sauce.id)}
+                  className={`flex min-w-0 flex-col items-center gap-0.5 rounded-xl px-0.5 py-1.5 text-center transition-colors duration-200 ${
+                    on ? 'gel bg-[#7A2432] text-white' : 'bg-slate-200/50 text-slate-600 hover:bg-white/70'
+                  }`}
+                >
+                  <span className="flex h-9 w-9 items-center justify-center text-3xl leading-none">
+                    <FoodIcon icon={foodById[sauce.id].emoji} />
+                  </span>
+                  <span className="w-full break-words text-[11px] font-medium leading-[1.1]">{sauce.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -424,17 +467,22 @@ export function ChislaPage() {
   const addToPlate = (item, index, selection = {}) => {
     const variant = selection.variant ?? null;
     const lf = Boolean(selection.lf);
-    setPlate((prev) => {
-      const found = prev.find(
-        (row) => row.foodId === item.id && row.index === index && row.variant === variant && row.lf === lf,
-      );
-      if (found) {
-        return prev.map((row) => (row === found ? { ...row, count: row.count + 1 } : row));
-      }
-      return [...prev, { foodId: item.id, index, variant, lf, count: 1 }];
-    });
+    const sauces = (selection.sauces ?? []).filter((id) => sauceIndex(id) >= 0);
+    const entries = [
+      { foodId: item.id, index, variant, lf },
+      ...sauces.map((id) => ({ foodId: id, index: sauceIndex(id), variant: null, lf: false })),
+    ];
+    setPlate((prev) =>
+      entries.reduce((list, entry) => {
+        const found = list.find(
+          (row) => row.foodId === entry.foodId && row.index === entry.index && row.variant === entry.variant && row.lf === entry.lf,
+        );
+        return found ? list.map((row) => (row === found ? { ...row, count: row.count + 1 } : row)) : [...list, { ...entry, count: 1 }];
+      }, prev),
+    );
     const { displayName } = resolveFood(item, { variant, lf });
-    setNotice(`Добавлено: ${displayName}, ${item.portions[index].label.toLowerCase()}`);
+    const extra = sauces.length ? ` + ${sauces.map((id) => SAUCE_UI.find((sauce) => sauce.id === id).name.toLowerCase()).join(', ')}` : '';
+    setNotice(`Добавлено: ${displayName}, ${item.portions[index].label.toLowerCase()}${extra}`);
   };
 
   const changeCount = (row, delta) => {
