@@ -257,7 +257,62 @@ function TabsCapsule() {
   );
 }
 
+// Настоящее «преломление» для содержимого под шапкой: каналы R/G/B расходятся в стороны и растягиваются в цветные полосы.
+// Работает через SVG-фильтр в backdrop-filter, это умеют только десктопные браузеры на Chromium. Остальным остаётся мягкая кромка из CSS.
+const REFRACT_ON_MOBILE = true; // Android-Chrome тоже умеет; false выключит на телефонах, если будет тормозить
+const REFRACT_SHIFT = 9; // насколько px расходятся каналы
+const REFRACT_STREAK = '8 2'; // растяжение полос по горизонтали и вертикали
+
+// Включаем эффект только в Chromium (Chrome, Edge, Opera, Яндекс, Android-Chrome). Safari и Firefox SVG-фильтры в backdrop-filter не умеют.
+// Для проверки: добавь к адресу ?refract=on (принудительно включить) или ?refract=off (выключить).
+function useRefractSupport() {
+  useEffect(() => {
+    const root = document.documentElement;
+    const ua = navigator.userAgent;
+    const forced = new URLSearchParams(window.location.search).get('refract');
+    const chromium = /Chrome\/|Chromium\//.test(ua) && !/Firefox|FxiOS|CriOS|EdgiOS/.test(ua);
+    const mobile = /Android|iPhone|iPad|iPod|Mobi/.test(ua);
+    let on = chromium && (REFRACT_ON_MOBILE || !mobile);
+    if (forced === 'on') on = true;
+    if (forced === 'off') on = false;
+    if (forced) console.info('[refract]', on ? 'включён' : 'выключен', { chromium, mobile });
+    root.classList.toggle('has-svg-backdrop', on);
+    return () => root.classList.remove('has-svg-backdrop');
+  }, []);
+}
+
+function RefractDefs() {
+  // Правило одно для обеих тем: в светлых местах слева розово-красный край, справа сине-голубой.
+  // Сдвинутые слои лежат поверх несдвинутых, чтобы по краям шапки не оставалось пустых цветных полос.
+  return (
+    <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="refract" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+          <feGaussianBlur in="SourceGraphic" stdDeviation={REFRACT_STREAK} result="blur" />
+          <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0.35 0 0 0 0  0 0 0 1 0" result="r" />
+          <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0  0 0.65 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
+          <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0  0 0 0.35 0 0  0 0 0.65 0 0  0 0 0 1 0" result="b" />
+          <feOffset in="r" dx={-REFRACT_SHIFT} result="rs" />
+          <feOffset in="b" dx={REFRACT_SHIFT} result="bs" />
+          <feMerge result="rFull">
+            <feMergeNode in="r" />
+            <feMergeNode in="rs" />
+          </feMerge>
+          <feMerge result="bFull">
+            <feMergeNode in="b" />
+            <feMergeNode in="bs" />
+          </feMerge>
+          <feComposite in="rFull" in2="g" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="rg" />
+          <feComposite in="rg" in2="bFull" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="rgb" />
+          <feColorMatrix in="rgb" type="saturate" values="1.35" />
+        </filter>
+      </defs>
+    </svg>
+  );
+}
+
 export function Header() {
+  useRefractSupport();
   const headerRef = useRef(null);
 
   useEffect(() => {
@@ -338,8 +393,9 @@ export function Header() {
 
   return (
     <div ref={headerRef} className="page-shell page-shell-tight hdr-intro sticky top-0 z-50 flex flex-col gap-1 py-3">
+      <RefractDefs />
       {/* Десктопная версия */}
-      <div className="hidden md:flex items-center justify-between gap-15 px-5 py-4 glass-bar rounded-3xl">
+      <div className="hidden md:flex items-center justify-between gap-15 px-5 py-4 glass-bar glass-refract rounded-3xl">
         <LogoInfo>
           <Logo className="h-9 w-auto" />
           <BetkaMetka />
@@ -366,7 +422,7 @@ export function Header() {
       </div>
 
       {/* Моб версия */}
-      <div className="md:hidden flex flex-col gap-2 px-3 py-3 glass-bar [--glass-a:0.22] rounded-3xl">
+      <div className="md:hidden flex flex-col gap-2 px-3 py-3 glass-bar glass-refract [--glass-a:0.22] rounded-3xl">
         <div className="flex items-center justify-between gap-3 px-1">
           <LogoInfo>
             <Logo className="h-8 w-auto" />

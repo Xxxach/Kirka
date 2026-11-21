@@ -753,7 +753,7 @@ export function ChislaPage() {
           className="fixed inset-x-3 z-40 lg:hidden"
           style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
         >
-          <div className="glass-bar [--glass-a:0.3] flex items-center justify-between gap-3 rounded-full py-2 pl-5 pr-2">
+          <div className="glass-bar glass-refract [--glass-a:0.3] flex items-center justify-between gap-3 rounded-full py-2 pl-5 pr-2">
             <div className="min-w-0">
               <div className="truncate text-xs text-slate-500">{notice || `Тарелка: ${rows.length}`}</div>
               <div className="text-[#7A2432]">

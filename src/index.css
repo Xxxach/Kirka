@@ -1038,3 +1038,43 @@ html.dark-theme .ksel__pop {
     mask-image: none;
   }
 }
+
+/* ---------- Преломление под стеклом (Chromium: Chrome, Edge, Яндекс, Android-Chrome) ----------
+   Содержимое под стеклом расходится на цветные каналы (фильтр #refract лежит в Header.jsx). В Safari и Firefox ничего не меняется.
+   Включено у: шапки и нижней панели (.glass-refract), всплывающих окон (.fb-shell), выпадающих списков (.ksel__pop), капсул-кнопок.
+   Большие статичные панели (.glass-bar без .glass-refract) не трогаем: под ними нет движущегося содержимого, а фильтр на большой площади тяжёлый.
+   Чем меньше альфа фона, тем виднее эффект; у окон с текстом и формами она выше ради читаемости. */
+html.has-svg-backdrop .glass-bar.glass-refract {
+  background: rgba(255, 255, 255, 0.2);
+  -webkit-backdrop-filter: url(#refract);
+  backdrop-filter: url(#refract);
+}
+html.dark-theme.has-svg-backdrop .glass-bar.glass-refract {
+  background: rgba(13, 13, 13, 0.28);
+}
+html.has-svg-backdrop .fb-shell {
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: url(#refract);
+  backdrop-filter: url(#refract);
+}
+html.dark-theme.has-svg-backdrop .fb-shell {
+  background: rgba(12, 12, 12, 0.56);
+}
+html.has-svg-backdrop .ksel__pop {
+  background-color: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: url(#refract);
+  backdrop-filter: url(#refract);
+}
+html.dark-theme.has-svg-backdrop .ksel__pop {
+  background-color: rgba(16, 16, 16, 0.6);
+}
+html.has-svg-backdrop .hdr-glow,
+html.has-svg-backdrop .tab-capsule {
+  background-color: rgba(226, 232, 240, 0.32);
+  -webkit-backdrop-filter: url(#refract);
+  backdrop-filter: url(#refract);
+}
+html.dark-theme.has-svg-backdrop .hdr-glow,
+html.dark-theme.has-svg-backdrop .tab-capsule {
+  background-color: rgba(17, 17, 17, 0.4) !important;
+}
