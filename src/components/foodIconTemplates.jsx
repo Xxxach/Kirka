@@ -1678,7 +1678,459 @@ const cheese = ([kind, body, rind, holes, extra], uid) => {
   return null;
 };
 
-const templates = { bar, slice, roll, bowl, cut, mince, drum, fish, can, glass, mug, cup, cookie, sweet, jar, heap, carton, tub, veg, dumpling, dish, salad, bread, wurst, burger, pizza, icecream, egg, fruit, nut, drinkware, sushi, skewer, tin, cheese };
+const STRAW = 'M24 44C9 33 4 22 9 14c4-6 11-4 15 1 4-5 11-7 15-1 5 8 0 19-15 30z';
+const GLASS_D = 'M11 10H37L34 41A3 3 0 0 1 31 43.500H17A3 3 0 0 1 14 41Z';
+const layerBlock = (uid, bands, topColor, topExtra) => (
+  <g>
+    <defs>
+      <clipPath id={`${uid}t`}><path d={BLK.top} /></clipPath>
+      <Grad id={`${uid}T`} a={tone(topColor, 0.26)} b={tone(topColor, -0.02)} />
+      <Shade id={`${uid}sh`} />
+    </defs>
+    <FloorShadow />
+    {bands.map(([ya, yb, c]) => <path key={ya} d={`M5 ${ya}H32V${yb}H5Z`} fill={h(c)} />)}
+    <path d={BLK.front} fill={`url(#${uid}sh)`} />
+    {bands.map(([ya, yb, c]) => <path key={`s${ya}`} d={sideBand(ya, yb)} fill={tone(c, -0.2)} />)}
+    <path d={BLK.top} fill={`url(#${uid}T)`} />
+    <g clipPath={`url(#${uid}t)`}>{topExtra}</g>
+    <BlockOutline />
+  </g>
+);
+
+const treat = ([kind, c1, c2, c3, c4], uid) => {
+  const R = (k) => `url(#${uid}${k})`;
+  if (kind === 'dubai') {
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}in`}><rect x="8.500" y="24.500" width="20" height="13" rx="2.200" /></clipPath>
+          <clipPath id={`${uid}t`}><path d={BLK.top} /></clipPath>
+          <Grad id={`${uid}F`} a={tone(c1, 0.14)} b={tone(c1, -0.18)} />
+          <Grad id={`${uid}T`} a={tone(c1, 0.32)} b={tone(c1, 0.1)} />
+          <Grad id={`${uid}S`} a={tone(c1, -0.05)} b={tone(c1, -0.35)} />
+          <Grad id={`${uid}G`} a={tone(c2, 0.2)} b={tone(c2, -0.15)} />
+        </defs>
+        <FloorShadow />
+        <path d={BLK.front} fill={R('F')} />
+        <path d={BLK.side} fill={R('S')} />
+        <path d={BLK.top} fill={R('T')} />
+        <rect x="8.500" y="24.500" width="20" height="13" rx="2.200" fill={R('G')} />
+        <g clipPath={R('in')} fill="none" strokeLinecap="round">
+          {[26.500, 29, 31.500, 34, 36.500].map((y, i) => (
+            <path key={y} d={`M7 ${y}c4-2 6 2 10 0s6-2 12 0`} stroke={i % 2 ? tone(c3, -0.1) : tone(c3, 0.2)} strokeWidth="1.300" opacity=".9" />
+          ))}
+        </g>
+        <rect x="8.500" y="24.500" width="20" height="13" rx="2.200" fill="none" stroke="rgba(0,0,0,.28)" strokeWidth=".8" />
+        <g clipPath={R('t')} fill="none" strokeLinecap="round">
+          <path d="M9 19.500C16 17 22 18 28 15S36 14 42 13" stroke={tone(c3, 0.1)} strokeWidth="1.300" opacity=".85" />
+          <path d="M12 20.500C19 18.500 25 19.500 31 16.500" stroke={`#${c2}`} strokeWidth="1.300" opacity=".9" />
+        </g>
+        <BlockOutline />
+      </g>
+    );
+  }
+  if (kind === 'kunafa') {
+    return layerBlock(uid, [[21, 26, 'E2A23C'], [26, 33, 'FFF3D0'], [33, 41, 'C97B26']], 'E9A93F', (
+      <>
+        {[6, 13, 20, 27, 34].map((x) => (
+          <g key={x}>
+            <path d={`M${x} 21Q${x + 4} 17 ${x + 11} 12`} stroke="rgba(150,80,10,.5)" strokeWidth="1" fill="none" />
+            <path d={`M${x + 3} 21Q${x + 7} 17 ${x + 14} 12`} stroke="rgba(255,225,150,.6)" strokeWidth="1" fill="none" />
+          </g>
+        ))}
+        {[[20, 17, -25], [28, 15, 20], [34, 17, -10], [24, 19.500, 30]].map(([x, y, r]) => (
+          <ellipse key={x} cx={x} cy={y} rx="2" ry="1" transform={`rotate(${r} ${x} ${y})`} fill="#7FA83A" stroke="rgba(0,0,0,.2)" strokeWidth=".4" />
+        ))}
+      </>
+    ));
+  }
+  if (kind === 'baklava') {
+    const bands = Array.from({ length: 8 }).map((_, i) => [21 + i * 2.5, 23.500 + i * 2.5, i % 2 ? 'C98A2E' : 'E3A94B']);
+    return layerBlock(uid, bands, 'E6B04E', (
+      <>
+        <path d="M9 19.500L17 13H33L25 19.500Z" fill="#7FA83A" />
+        <path d="M13 18L19 14M20 18L26 14" stroke="rgba(255,255,255,.4)" strokeWidth="1" />
+        <path d="M6 20C15 18 28 17 42 12" stroke="rgba(255,255,255,.35)" strokeWidth="1.600" strokeLinecap="round" fill="none" />
+      </>
+    ));
+  }
+  if (kind === 'chocstraw') {
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}s`}><path d={STRAW} /></clipPath>
+          <radialGradient id={`${uid}r`} cx=".35" cy=".3" r=".9">
+            <stop offset="0" stopColor={tone(c1, 0.3)} />
+            <stop offset="1" stopColor={tone(c1, -0.2)} />
+          </radialGradient>
+          <Grad id={`${uid}c`} a={tone(c2, 0.16)} b={tone(c2, -0.22)} />
+        </defs>
+        <SoftShadow cx={24} cy={45} rx={12} ry={1.500} />
+        <path d={STRAW} fill={R('r')} />
+        <g clipPath={R('s')}>
+          <path d="M0 48V26C4 23 8 28 12 25S20 23 24 26S32 28 36 25 44 23 48 26V48Z" fill={R('c')} />
+          <path d="M4 30C14 28 24 33 34 30M6 37C16 35 26 40 40 36" stroke="rgba(255,255,255,.85)" strokeWidth="1.500" fill="none" strokeLinecap="round" />
+          <path d="M11 27C10 31 11 36 14 40" stroke="rgba(255,255,255,.3)" strokeWidth="2" fill="none" strokeLinecap="round" />
+        </g>
+        <path d="M24 12c-6-5-12-3-14 0 5 0 9 1 14 0zM24 12c6-5 12-3 14 0-5 0-9 1-14 0zM24 12c-2-4 0-7 2-9" fill={`#${c3}`} stroke={tone(c3, -0.3)} strokeWidth=".8" strokeLinejoin="round" />
+        <path d={STRAW} fill="none" stroke="rgba(0,0,0,.3)" strokeWidth="1.200" strokeLinejoin="round" />
+      </g>
+    );
+  }
+  if (kind === 'mochi') {
+    const body = 'M6 33C6 21 14 15 24 15S42 21 42 33C42 38 34 40 24 40S6 38 6 33Z';
+    return (
+      <g>
+        <defs>
+          <radialGradient id={`${uid}a`} cx=".4" cy=".3" r=".9"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor={tone(c1, -0.1)} /></radialGradient>
+          <radialGradient id={`${uid}b`} cx=".4" cy=".3" r=".9"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor={tone(c2, -0.1)} /></radialGradient>
+        </defs>
+        <SoftShadow cx={24} cy={41.500} rx={18} ry={2} />
+        <g transform="translate(9 -7) scale(.72)">
+          <path d={body} fill={R('b')} stroke="rgba(0,0,0,.25)" strokeWidth="1.500" strokeLinejoin="round" />
+          <path d="M12 26C15 22 20 20 25 20" stroke="rgba(255,255,255,.8)" strokeWidth="2.400" fill="none" strokeLinecap="round" />
+        </g>
+        <path d={body} fill={R('a')} stroke="rgba(0,0,0,.28)" strokeWidth="1.300" strokeLinejoin="round" />
+        <path d="M12 27C15 22 20 20 26 20" stroke="rgba(255,255,255,.85)" strokeWidth="2.400" fill="none" strokeLinecap="round" />
+        <path d="M9 36C14 39 34 39 39 36" stroke="rgba(255,255,255,.6)" strokeWidth="2" fill="none" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (kind === 'mochiice') {
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}k`}><path d="M5 30H43C43 37 35 41 24 41S5 37 5 30Z" /></clipPath>
+          <radialGradient id={`${uid}i`} cx=".4" cy=".3" r=".9"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor={tone(c2, -0.14)} /></radialGradient>
+          <Grad id={`${uid}d`} a="#fff" b={tone(c1, -0.14)} />
+        </defs>
+        <SoftShadow cx={24} cy={42} rx={18} ry={2} />
+        <path d="M9 31C8 20 15 13 24 13S40 20 39 31Z" fill={R('i')} stroke="rgba(0,0,0,.2)" strokeWidth="1.100" />
+        <path d="M14 26C18 22 27 21 33 24M17 20C21 17 28 17 32 20" stroke={c3 ? `#${c3}` : '#F4A6BE'} strokeWidth="2.400" fill="none" strokeLinecap="round" />
+        <path d="M5 30H43C43 37 35 41 24 41S5 37 5 30Z" fill={R('d')} stroke="rgba(0,0,0,.26)" strokeWidth="1.200" strokeLinejoin="round" />
+        <g clipPath={R('k')}><path d="M9 34C16 37 32 37 39 34" stroke="rgba(255,255,255,.7)" strokeWidth="2" fill="none" strokeLinecap="round" /></g>
+      </g>
+    );
+  }
+  if (kind === 'tanghulu') {
+    return (
+      <g>
+        <defs>
+          <radialGradient id={`${uid}g`} cx=".35" cy=".3" r=".85"><stop offset="0" stopColor={tone(c1, 0.35)} /><stop offset="1" stopColor={tone(c1, -0.25)} /></radialGradient>
+        </defs>
+        <rect x="22.800" y="3" width="2.400" height="42" rx="1.200" fill="#D4A96A" stroke="rgba(0,0,0,.25)" strokeWidth=".8" />
+        {[11.500, 20.500, 29.500, 38.500].map((y) => (
+          <g key={y}>
+            <circle cx="24" cy={y} r="5.300" fill={R('g')} stroke="rgba(0,0,0,.28)" strokeWidth="1" />
+            <circle cx="24" cy={y} r="5.800" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="1" />
+            <ellipse cx="22" cy={y - 2} rx="1.600" ry="1" fill="rgba(255,255,255,.85)" transform={`rotate(-30 22 ${y - 2})`} />
+          </g>
+        ))}
+      </g>
+    );
+  }
+  if (kind === 'bingsu') {
+    const mound = 'M7 27C7 14 15 8 24 8S41 14 41 27Z';
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}m`}><path d={mound} /></clipPath>
+          <radialGradient id={`${uid}n`} cx=".4" cy=".25" r=".9"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor="#CFE3F0" /></radialGradient>
+        </defs>
+        <SoftShadow cx={24} cy={44} rx={17} ry={2} />
+        <path d={mound} fill={R('n')} stroke="rgba(0,0,0,.2)" strokeWidth="1" />
+        <g clipPath={R('m')} fill="none" strokeLinecap="round">
+          <path d="M8 18C14 21 20 15 26 19S36 17 41 20M8 24C16 27 24 21 32 25" stroke="#FFF3DA" strokeWidth="2" />
+        </g>
+        <path d="M17 10c0-2 3-2 3 0s3 2 3 0M25 14C23 10 28 8 29 12 31 15 27 17 25 14Z" fill="#D3202F" stroke="rgba(0,0,0,.25)" strokeWidth=".7" />
+        {[[30, 13], [35, 19]].map(([x, y]) => <rect key={x} x={x - 2} y={y - 2} width="4.200" height="4.200" rx=".8" transform={`rotate(15 ${x} ${y})`} fill="#F7C531" stroke="rgba(0,0,0,.22)" strokeWidth=".6" />)}
+        <path d="M4 26h40c0 11-8 19-20 19S4 37 4 26z" fill="#F6F2EA" stroke="#B9B2A6" strokeWidth="1.500" />
+        <path d="M10 32C16 36 32 36 38 32" stroke="rgba(255,255,255,.7)" strokeWidth="1.800" fill="none" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (kind === 'parfait') {
+    const top = c4;
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}p`}><path d={GLASS_D} /></clipPath>
+          <FlatShade id={`${uid}s`} />
+        </defs>
+        <SoftShadow cx={24} cy={44.500} rx={13} ry={1.600} />
+        <g clipPath={R('p')}>
+          <rect x="8" y="8" width="34" height="38" fill="rgba(215,232,242,.4)" />
+          <rect x="8" y="30" width="34" height="14" fill={h(c3)} />
+          <rect x="8" y="20" width="34" height="10.500" fill={h(c2)} />
+          <rect x="8" y="12" width="34" height="8.500" fill={h(c1)} />
+          {top === 'dust' && <path d="M8 12H42V14.500H8Z" fill={tone(c1, 0.1)} />}
+          <path d="M8 30C16 32 24 28 32 31S40 30 42 30M8 20.500C16 22.500 26 18.500 42 21" stroke="rgba(0,0,0,.14)" strokeWidth="1" fill="none" />
+          <rect x="8" y="8" width="34" height="38" fill={R('s')} />
+          <path d="M15 14V40" stroke="rgba(255,255,255,.5)" strokeWidth="2" strokeLinecap="round" />
+        </g>
+        {top === 'berry' && [[19, 9], [25.500, 8], [31, 9.500]].map(([x, y]) => (
+          <g key={x}><circle cx={x} cy={y} r="3.200" fill="#B3123A" stroke="rgba(0,0,0,.25)" strokeWidth=".7" /><circle cx={x - 1} cy={y - 1} r=".9" fill="rgba(255,255,255,.6)" /></g>
+        ))}
+        {top === 'straw' && <path d="M31 3L25 28" stroke="#E8505B" strokeWidth="2.800" strokeLinecap="round" />}
+        <path d={GLASS_D} fill="none" stroke="#9FB6C4" strokeWidth="1.500" strokeLinejoin="round" />
+      </g>
+    );
+  }
+  if (kind === 'acai') {
+    return (
+      <g>
+        <defs>
+          <radialGradient id={`${uid}v`} cx=".4" cy=".3" r=".9"><stop offset="0" stopColor={tone(c1, 0.3)} /><stop offset="1" stopColor={tone(c1, -0.18)} /></radialGradient>
+        </defs>
+        <SoftShadow cx={24} cy={44} rx={17} ry={2} />
+        <path d="M4 24h40c0 11-8 19-20 19S4 35 4 24z" fill="#F6F2EA" stroke="#B9B2A6" strokeWidth="1.500" />
+        <ellipse cx="24" cy="24" rx="20" ry="7" fill={R('v')} />
+        {[[14, 22], [21, 19.500], [28, 22]].map(([x, y]) => (
+          <g key={x}><ellipse cx={x} cy={y} rx="3.600" ry="2.600" fill="#FFF1B8" stroke="rgba(0,0,0,.25)" strokeWidth=".7" /><ellipse cx={x} cy={y} rx="1.400" ry="1" fill="#E8C86A" /></g>
+        ))}
+        {[[34, 22.500], [18, 27], [26, 27.500]].map(([x, y]) => (
+          <g key={x}><circle cx={x} cy={y} r="2.800" fill="#3F5BA9" stroke="rgba(0,0,0,.25)" strokeWidth=".7" /><circle cx={x - 0.9} cy={y - 0.9} r=".8" fill="rgba(255,255,255,.55)" /></g>
+        ))}
+        <path d="M32 27C34 24 38 24 39 26 38 29 34 30 32 27Z" fill="#D3202F" stroke="rgba(0,0,0,.25)" strokeWidth=".7" />
+        <path d="M10 28C14 31 22 31 26 29" stroke="rgba(255,255,255,.85)" strokeWidth="1.600" fill="none" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (kind === 'crookie') {
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}c`}><circle cx="24" cy="25" r="18" /></clipPath>
+          <radialGradient id={`${uid}d`} cx=".38" cy=".3" r=".9"><stop offset="0" stopColor={tone(c1, 0.3)} /><stop offset="1" stopColor={tone(c1, -0.22)} /></radialGradient>
+        </defs>
+        <SoftShadow cx={24} cy={44} rx={18} ry={2} />
+        <circle cx="24" cy="25" r="18" fill={R('d')} />
+        <g clipPath={R('c')} fill="none" strokeLinecap="round">
+          <path d="M5 18C14 13 30 13 43 19M4 26C14 21 32 21 44 27M6 34C16 29 32 29 42 35" stroke="rgba(120,60,10,.3)" strokeWidth="1.300" />
+          <path d="M6 21C15 16 31 16 42 22M5 30C15 25 33 25 43 31" stroke="rgba(255,225,150,.4)" strokeWidth="1.100" />
+        </g>
+        {[[17, 19, -15], [30, 17, 20], [25, 27, 5], [14, 29, 25], [33, 30, -20]].map(([x, y, r]) => (
+          <g key={x} transform={`rotate(${r} ${x} ${y})`}>
+            <rect x={x - 4} y={y - 2.800} width="8" height="5.600" rx="1.600" fill={h(c2)} stroke="rgba(0,0,0,.35)" strokeWidth=".7" />
+            <rect x={x - 3} y={y - 2} width="3.400" height="1.200" rx=".6" fill="rgba(255,255,255,.3)" />
+          </g>
+        ))}
+        <circle cx="24" cy="25" r="18" fill="none" stroke="rgba(100,50,5,.5)" strokeWidth="1.300" />
+      </g>
+    );
+  }
+  if (kind === 'cruffin') {
+    const dome = 'M7 40C5 22 13 10 24 10S43 22 41 40Z';
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}c`}><path d={dome} /></clipPath>
+          <Grad id={`${uid}g`} a={tone(c1, 0.28)} b={tone(c1, -0.22)} />
+        </defs>
+        <SoftShadow cx={24} cy={41.500} rx={18} ry={2} />
+        <path d={dome} fill={R('g')} />
+        <g clipPath={R('c')}>
+          <g transform="translate(24 27) scale(1.100 1.200)"><path d={SPIRAL} fill="none" stroke="rgba(120,60,10,.4)" strokeWidth="1.300" strokeLinecap="round" /></g>
+          <path d="M12 22C15 15 22 12 28 13" stroke="rgba(255,255,255,.5)" strokeWidth="2.200" fill="none" strokeLinecap="round" />
+          <path d="M5 38H43" stroke="rgba(255,255,255,.28)" strokeWidth="3" />
+        </g>
+        <path d={dome} fill="none" stroke="rgba(100,50,5,.5)" strokeWidth="1.300" strokeLinejoin="round" />
+      </g>
+    );
+  }
+  if (kind === 'cronut') {
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}o`}><path d="M24 11C34 11 43 16 43 26S34 41 24 41 5 36 5 26 14 11 24 11ZM24 22C20 22 17.500 23.500 17.500 25.500S20 29 24 29S30.500 27.500 30.500 25.500 28 22 24 22Z" clipRule="evenodd" /></clipPath>
+          <Grad id={`${uid}d`} a={tone(c1, 0.25)} b={tone(c1, -0.22)} />
+        </defs>
+        <SoftShadow cx={24} cy={42} rx={18} ry={2} />
+        <path d="M24 11C34 11 43 16 43 26S34 41 24 41 5 36 5 26 14 11 24 11ZM24 22C20 22 17.500 23.500 17.500 25.500S20 29 24 29S30.500 27.500 30.500 25.500 28 22 24 22Z" fillRule="evenodd" fill={R('d')} />
+        <g clipPath={R('o')} fill="none" strokeLinecap="round">
+          <path d="M6 31C12 38 36 38 42 31M7 35C14 41 34 41 41 35" stroke="rgba(120,60,10,.35)" strokeWidth="1.200" />
+          <path d="M5 21C8 14 16 11 24 11S40 14 43 21C38 19 36 24 31 22 28 20 20 20 17 22 11 19 5 21Z" fill={h(c2)} />
+          <path d="M10 18C14 15 19 14 24 14" stroke="rgba(255,255,255,.6)" strokeWidth="2" />
+          <path d="M12 21L16 17M20 22L24 16M28 21L33 16" stroke="#fff" strokeWidth="1.300" opacity=".85" />
+        </g>
+        <path d="M24 11C34 11 43 16 43 26S34 41 24 41 5 36 5 26 14 11 24 11Z" fill="none" stroke="rgba(100,50,5,.5)" strokeWidth="1.300" />
+        <ellipse cx="24" cy="25.500" rx="6.500" ry="3.500" fill="rgba(0,0,0,.25)" stroke="rgba(100,50,5,.5)" strokeWidth="1" />
+      </g>
+    );
+  }
+  if (kind === 'croissant') {
+    const segs = [[7.500, 34, -58, 6.500, 5.500], [40.500, 34, 58, 6.500, 5.500], [14.500, 26.500, -34, 8, 6.800], [33.500, 26.500, 34, 8, 6.800], [24, 22.500, 0, 10, 8.500]];
+    return (
+      <g>
+        <defs>
+          <radialGradient id={`${uid}d`} cx=".4" cy=".3" r=".9"><stop offset="0" stopColor={tone(c1, 0.32)} /><stop offset="1" stopColor={tone(c1, -0.2)} /></radialGradient>
+          <clipPath id={`${uid}c`}><ellipse cx="24" cy="22.500" rx="10" ry="8.500" /></clipPath>
+        </defs>
+        <SoftShadow cx={24} cy={41} rx={19} ry={2} />
+        {segs.map(([x, y, r, rx, ry]) => <ellipse key={x} cx={x} cy={y} rx={rx} ry={ry} transform={`rotate(${r} ${x} ${y})`} fill={R('d')} stroke="rgba(110,55,10,.5)" strokeWidth="1" />)}
+        <g clipPath={R('c')}>
+          <path d="M13 19C18 14 30 14 35 19C32 22 27 21 24 23C20 21 16 23 13 19Z" fill={`#${c2}`} opacity=".9" />
+          <path d="M16 17C20 15 28 15 32 17" stroke="rgba(255,255,255,.7)" strokeWidth="1.400" fill="none" strokeLinecap="round" />
+        </g>
+        <path d="M12 22C15 18 20 17 24 17" stroke="rgba(255,255,255,.4)" strokeWidth="2" fill="none" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (kind === 'croffle') {
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}c`}><circle cx="24" cy="28" r="17" /></clipPath>
+          <radialGradient id={`${uid}d`} cx=".38" cy=".3" r=".9"><stop offset="0" stopColor={tone(c1, 0.28)} /><stop offset="1" stopColor={tone(c1, -0.2)} /></radialGradient>
+          <radialGradient id={`${uid}w`} cx=".4" cy=".3" r=".9"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor="#E9E2D6" /></radialGradient>
+        </defs>
+        <SoftShadow cx={24} cy={44.500} rx={18} ry={2} />
+        <circle cx="24" cy="28" r="17" fill={R('d')} />
+        <g clipPath={R('c')}><path d="M5 21H43M5 28H43M5 35H43M15 10V46M24 10V46M33 10V46" stroke="rgba(120,60,10,.38)" strokeWidth="1.400" /></g>
+        <circle cx="24" cy="28" r="17" fill="none" stroke="rgba(100,50,5,.5)" strokeWidth="1.300" />
+        <ellipse cx="24" cy="25" rx="8.500" ry="3.500" fill={R('w')} stroke="rgba(0,0,0,.15)" strokeWidth=".8" />
+        <ellipse cx="24" cy="21.500" rx="6.500" ry="3" fill={R('w')} stroke="rgba(0,0,0,.15)" strokeWidth=".8" />
+        <ellipse cx="24" cy="18.500" rx="4" ry="2.400" fill={R('w')} stroke="rgba(0,0,0,.15)" strokeWidth=".8" />
+        <path d="M30 14C30 11 35 11 35 14 35 17 32 19 30 21 28 19 30 17 30 14Z" fill={`#${c2}`} stroke="rgba(0,0,0,.25)" strokeWidth=".7" />
+      </g>
+    );
+  }
+  if (kind === 'pavlova') {
+    return (
+      <g>
+        <defs>
+          <radialGradient id={`${uid}m`} cx=".4" cy=".3" r=".9"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor="#E9DFCB" /></radialGradient>
+          <clipPath id={`${uid}k`}><path d="M7 36C5 26 12 20 24 20S43 26 41 36C38 40 10 40 7 36Z" /></clipPath>
+        </defs>
+        <SoftShadow cx={24} cy={41.500} rx={18} ry={2} />
+        <path d="M7 36C5 26 12 20 24 20S43 26 41 36C38 40 10 40 7 36Z" fill={R('m')} stroke="rgba(0,0,0,.22)" strokeWidth="1.100" strokeLinejoin="round" />
+        <g clipPath={R('k')} fill="none" strokeLinecap="round"><path d="M10 34C11 30 12 27 14 24M18 38C18 33 19 29 20 25M28 38C29 33 29 29 28 24M37 35C36 31 35 28 33 25" stroke="rgba(150,120,70,.25)" strokeWidth="1.600" /></g>
+        <path d="M11 24C11 18 17 16 24 16S37 18 37 24C34 27 30 24 27 27S21 24 18 27 13 27 11 24Z" fill="#fff" stroke="rgba(0,0,0,.18)" strokeWidth=".9" />
+        {[[18, 15.500, '#C2185B'], [26, 13.500, '#3F5BA9'], [31, 17, '#D3202F']].map(([x, y, c]) => (
+          <g key={x}><circle cx={x} cy={y} r="3.200" fill={c} stroke="rgba(0,0,0,.25)" strokeWidth=".7" /><circle cx={x - 1} cy={y - 1} r=".9" fill="rgba(255,255,255,.55)" /></g>
+        ))}
+        <path d="M22 11C24 6 29 6 30 9 28 12 24 12 22 11Z" fill="#4F9A2E" stroke="#3A7A20" strokeWidth=".6" />
+      </g>
+    );
+  }
+  if (kind === 'crumbl') {
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}c`}><circle cx="24" cy="26" r="19" /></clipPath>
+          <radialGradient id={`${uid}d`} cx=".38" cy=".3" r=".9"><stop offset="0" stopColor={tone(c1, 0.25)} /><stop offset="1" stopColor={tone(c1, -0.2)} /></radialGradient>
+          <radialGradient id={`${uid}f`} cx=".4" cy=".3" r=".9"><stop offset="0" stopColor={tone(c2, 0.3)} /><stop offset="1" stopColor={tone(c2, -0.12)} /></radialGradient>
+        </defs>
+        <SoftShadow cx={24} cy={45} rx={18} ry={2} />
+        <circle cx="24" cy="26" r="19" fill={R('d')} stroke="rgba(100,50,5,.45)" strokeWidth="1.300" />
+        <path d="M9 24C8 15 16 9 24 9S40 15 39 24C40 30 34 34 28 33C25 38 17 38 14 33C9 32 8 28 9 24Z" fill={R('f')} stroke="rgba(0,0,0,.2)" strokeWidth="1" strokeLinejoin="round" />
+        <g clipPath={R('c')}>
+          <path d="M13 20C18 15 28 15 34 20M15 26C20 22 29 22 34 27" stroke="rgba(255,255,255,.6)" strokeWidth="1.800" fill="none" strokeLinecap="round" />
+          {[[15, 31, -20], [32, 31, 25], [24, 36, 5]].map(([x, y, r]) => <rect key={x} x={x - 3} y={y - 2} width="6" height="4" rx="1.400" transform={`rotate(${r} ${x} ${y})`} fill={tone(c1, -0.3)} />)}
+        </g>
+      </g>
+    );
+  }
+  if (kind === 'boba') {
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}p`}><path d="M11 12H37L34 42A3 3 0 0 1 31 44.500H17A3 3 0 0 1 14 42Z" /></clipPath>
+          <Grad id={`${uid}t`} a={tone(c1, 0.22)} b={tone(c1, -0.18)} />
+          <radialGradient id={`${uid}q`} cx=".35" cy=".3" r=".85"><stop offset="0" stopColor="#6B5A52" /><stop offset="1" stopColor="#2A1D18" /></radialGradient>
+        </defs>
+        <SoftShadow cx={24} cy={45.500} rx={13} ry={1.500} />
+        <path d="M29 1L25 30" stroke={h(c2)} strokeWidth="3.600" strokeLinecap="round" />
+        <g clipPath={R('p')}>
+          <rect x="8" y="10" width="34" height="36" fill="rgba(215,232,242,.4)" />
+          <rect x="8" y="16" width="34" height="30" fill={R('t')} />
+          {[[17, 39.500], [23, 41], [29, 39.500], [20, 35], [26, 36], [32, 36.500]].map(([x, y]) => (
+            <g key={x + y}><circle cx={x} cy={y} r="2.800" fill={R('q')} /><circle cx={x - 0.8} cy={y - 0.9} r=".7" fill="rgba(255,255,255,.4)" /></g>
+          ))}
+          <path d="M16 18V38" stroke="rgba(255,255,255,.5)" strokeWidth="2" strokeLinecap="round" />
+        </g>
+        <path d="M11 12C11 7 17 5 24 5S37 7 37 12Z" fill="rgba(235,245,250,.75)" stroke="#9FB6C4" strokeWidth="1.300" />
+        <path d="M11 12H37L34 42A3 3 0 0 1 31 44.500H17A3 3 0 0 1 14 42Z" fill="none" stroke="#9FB6C4" strokeWidth="1.500" strokeLinejoin="round" />
+      </g>
+    );
+  }
+  if (kind === 'corndog') {
+    return (
+      <g transform="rotate(-18 24 24)">
+        <defs>
+          <clipPath id={`${uid}c`}><rect x="16.500" y="3" width="15" height="31" rx="7.500" /></clipPath>
+          <linearGradient id={`${uid}g`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor={tone(c1, -0.15)} /><stop offset=".3" stopColor={tone(c1, 0.25)} /><stop offset="1" stopColor={tone(c1, -0.3)} />
+          </linearGradient>
+        </defs>
+        <rect x="22.800" y="30" width="2.600" height="16" rx="1.300" fill="#D4A96A" stroke="rgba(0,0,0,.25)" strokeWidth=".8" />
+        <rect x="16.500" y="3" width="15" height="31" rx="7.500" fill={R('g')} />
+        <g clipPath={R('c')} fill="none" strokeLinecap="round">
+          <path d="M14 11L34 16M14 18L34 23" stroke="#D3202F" strokeWidth="2" />
+          <path d="M14 14L34 19M14 21L34 26" stroke="#F2C94C" strokeWidth="2" />
+        </g>
+        <rect x="16.500" y="3" width="15" height="31" rx="7.500" fill="none" stroke="rgba(100,50,5,.5)" strokeWidth="1.300" />
+      </g>
+    );
+  }
+  if (kind === 'smash') {
+    return (
+      <g>
+        <defs>
+          <Grad id={`${uid}b`} a="#E8B05A" b="#C98A38" />
+        </defs>
+        <SoftShadow cx={24} cy={44} rx={19} ry={2} />
+        <path d="M5 18C5 8 14 3 24 3s19 5 19 15z" fill={R('b')} stroke="rgba(0,0,0,.22)" strokeWidth="1.100" />
+        <path d="M11 11C14 8 18 7 22 7" stroke="rgba(255,255,255,.5)" strokeWidth="1.800" fill="none" strokeLinecap="round" />
+        {[[13, 20], [24, 20.500], [35, 20]].map(([x, y]) => <ellipse key={x} cx={x} cy={y} rx="5" ry="1.800" fill="#7FA83A" stroke="rgba(0,0,0,.2)" strokeWidth=".6" />)}
+        <path d="M3 26C4 22 8 24 10 22S16 24 19 22 25 24 28 22 34 24 37 22 43 24 45 26C46 30 44 32 42 32H6C3 32 2 29 3 26Z" fill="#4A2A1A" stroke="rgba(0,0,0,.4)" strokeWidth="1" strokeLinejoin="round" />
+        <path d="M5 26H43L40 33L36 29L32 34L28 29L24 34L20 29L16 34L12 29L8 33Z" fill="#F7C531" stroke="rgba(0,0,0,.15)" strokeWidth=".7" strokeLinejoin="round" />
+        <path d="M4 36C4 35 6 34 8 34H40C42 34 44 35 44 36C44 40 41 42 38 42H10C7 42 4 40 4 36Z" fill={R('b')} stroke="rgba(0,0,0,.22)" strokeWidth="1.100" />
+      </g>
+    );
+  }
+  if (kind === 'birria') {
+    return (
+      <g>
+        <defs>
+          <clipPath id={`${uid}c`}><path d="M3 34C3 20 12 12 22 12S41 20 41 34Z" /></clipPath>
+          <Grad id={`${uid}g`} a="#E0642A" b="#A73A14" />
+          <Grad id={`${uid}s`} a="#E0592B" b="#8E2A0E" />
+        </defs>
+        <SoftShadow cx={22} cy={40} rx={19} ry={2} />
+        <path d="M3 34C3 20 12 12 22 12S41 20 41 34Z" fill={R('g')} />
+        <g clipPath={R('c')}>
+          <path d="M3 34C4 30 6 36 9 31S14 36 17 31 22 37 26 31 31 36 34 31 38 36 41 32V36H3Z" fill="#F7C531" />
+          <path d="M9 22C14 16 28 15 36 22" stroke="rgba(255,255,255,.35)" strokeWidth="2" fill="none" strokeLinecap="round" />
+        </g>
+        <path d="M5 26C9 16 17 13 22 13S35 16 39 26" stroke="#5A2A12" strokeWidth="3.200" fill="none" strokeLinecap="round" />
+        {[[14, 13, -25], [22, 11.500, 5], [30, 13, 30]].map(([x, y, r]) => <path key={x} transform={`translate(${x} ${y}) rotate(${r})`} d="M-3 0C-1.500-2.200 1.500-2.200 3 0C1.500 2.200-1.500 2.200-3 0Z" fill="#4F9A2E" />)}
+        <path d="M3 34C3 20 12 12 22 12S41 20 41 34Z" fill="none" stroke="rgba(80,30,5,.5)" strokeWidth="1.200" strokeLinejoin="round" />
+        <path d="M34 32H46L44.500 42A2 2 0 0 1 42.500 43.500H37.500A2 2 0 0 1 35.500 42Z" fill="#F6F2EA" stroke="#B9B2A6" strokeWidth="1" />
+        <ellipse cx="40" cy="32" rx="6" ry="1.700" fill="#B3261E" stroke="#B9B2A6" strokeWidth=".8" />
+      </g>
+    );
+  }
+  if (kind === 'bao') {
+    return (
+      <g>
+        <defs>
+          <radialGradient id={`${uid}t`} cx=".4" cy=".3" r=".9"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor="#E6DCC6" /></radialGradient>
+          <Grad id={`${uid}b`} a="#fff" b="#E0D5BD" />
+        </defs>
+        <SoftShadow cx={24} cy={42} rx={19} ry={2} />
+        <path d="M5 30C5 36 12 41 24 41S43 36 43 30Z" fill={R('b')} stroke="rgba(0,0,0,.22)" strokeWidth="1.100" strokeLinejoin="round" />
+        <path d="M6 28C10 31 14 26 18 29S26 31 30 28 38 29 42 28V32H6Z" fill="#7A3E20" stroke="rgba(0,0,0,.3)" strokeWidth=".9" strokeLinejoin="round" />
+        {[[11, 27, -30], [38, 27, 35]].map(([x, y, r]) => <path key={x} transform={`translate(${x} ${y}) rotate(${r})`} d="M-3.500 0C-1.800-2.500 1.800-2.500 3.500 0C1.800 2.500-1.800 2.500-3.500 0Z" fill="#4F9A2E" />)}
+        <path d="M5 27C5 18 13 13 24 13S43 18 43 27C36 24 12 24 5 27Z" fill={R('t')} stroke="rgba(0,0,0,.22)" strokeWidth="1.100" strokeLinejoin="round" />
+        <path d="M11 19C15 16 21 15 26 15" stroke="rgba(255,255,255,.9)" strokeWidth="2.200" fill="none" strokeLinecap="round" />
+      </g>
+    );
+  }
+  return null;
+};
+
+const templates = { bar, slice, roll, bowl, cut, mince, drum, fish, can, glass, mug, cup, cookie, sweet, jar, heap, carton, tub, veg, dumpling, dish, salad, bread, wurst, burger, pizza, icecream, egg, fruit, nut, drinkware, sushi, skewer, tin, cheese, treat };
 
 export function ParamIcon({ icon }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');

@@ -248,6 +248,11 @@ function PortionList({ item, expanded, close, onChoose }) {
   const [sauces, setSauces] = useState([]);
   const current = resolveFood(item, { variant, lf });
   const toggleSauce = (id) => setSauces((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  // Каждый выбранный соус добавляется в тарелку одной порцией (25 г), поэтому его калории не зависят от размера основного блюда
+  const sauceKcal = sauces.reduce((sum, id) => {
+    const sauce = foodById[id];
+    return sum + portionNutrition(sauce, sauce.portions[sauceIndex(id)].grams).kcal;
+  }, 0);
 
   useEffect(() => {
     if (!expanded || window.matchMedia?.('(pointer: coarse)').matches) return;
@@ -305,7 +310,10 @@ function PortionList({ item, expanded, close, onChoose }) {
 
       {SAUCE_HOSTS.has(item.id) && (
         <div className="mb-2">
-          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Соусы</div>
+          <div className="mb-1.5 flex items-baseline justify-between text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span>Соусы</span>
+            {sauces.length > 0 && <span className="normal-case tracking-normal text-[#7A2432]">+{round(sauceKcal)} ккал</span>}
+          </div>
           <div className="grid grid-cols-5 gap-1.5">
             {SAUCE_UI.filter((sauce) => sauceIndex(sauce.id) >= 0).map((sauce) => {
               const on = sauces.includes(sauce.id);
@@ -346,7 +354,7 @@ function PortionList({ item, expanded, close, onChoose }) {
                 </span>
               </span>
               <span className="whitespace-nowrap text-lg font-semibold tabular-nums text-[#7A2432]">
-                ≈ {round(portionNutrition(current, portion.grams).kcal)} ккал
+                ≈ {round(portionNutrition(current, portion.grams).kcal + sauceKcal)} ккал
               </span>
             </button>
           </li>
