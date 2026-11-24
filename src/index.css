@@ -692,11 +692,11 @@ html.dark-theme [class*="rgba(122,36,50"] { box-shadow: 0 2px 12px -2px rgba(37,
 .about-points li {
   padding: 4px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(122, 36, 50, 0.2);
-  background: rgba(122, 36, 50, 0.07);
+  border: 0;
+  background: #7a2432;
   font-size: 12px;
-  font-weight: 500;
-  color: #7a2432;
+  font-weight: 600;
+  color: #fff;
 }
 .about-faq {
   border-top: 1px solid rgba(148, 163, 184, 0.35);
@@ -1086,7 +1086,7 @@ html.dark-theme.has-svg-backdrop .tab-capsule {
 .doc-title { margin: 4px 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; color: #1e293b; }
 .doc-meta { margin: 0; font-size: 12px; line-height: 1.5; color: #94a3b8; }
 .doc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; padding: 0; list-style: none; }
-.doc-chips li { padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(122, 36, 50, 0.2); background: rgba(122, 36, 50, 0.07); font-size: 12px; font-weight: 500; color: #7a2432; }
+.doc-chips li { padding: 4px 12px; border-radius: 999px; border: 0; background: #7a2432; font-size: 12px; font-weight: 600; color: #fff; }
 .doc-summary { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-radius: 18px; border: 1px solid rgba(122, 36, 50, 0.16); background: rgba(122, 36, 50, 0.05); }
 .doc-summary h2 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(122, 36, 50, 0.72); }
 .doc-summary ul { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }

@@ -27,7 +27,7 @@ export function Logo({ className = 'h-9' }) {
 
 export function BetkaMetka() {
   return (
-    <span className="rounded-full border border-[#7A2432]/25 bg-[#7A2432]/10 px-2 py-0.5 text-[10px] font-medium text-[#7A2432] leading-none select-none">
+    <span className="rounded-full bg-[#7A2432] px-2.5 py-1 text-[10px] font-semibold text-white leading-none select-none">
       Бета
     </span>
   );
