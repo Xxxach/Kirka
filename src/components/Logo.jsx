@@ -139,6 +139,11 @@ export function LogoInfo({ children, className = 'items-start' }) {
                 <b className="text-slate-800">Файл-моменты</b> — конвертирует
                 PDF в Word и обратно, а также форматы изображений.
               </li>
+              <li>
+                <b className="text-slate-800">Числа-моменты</b> — считает
+                калории и БЖУ без взвешивания: выберите продукт и порцию в
+                ложках, чашках или ломтиках.
+              </li>
             </ul>
             <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
               Фото и файлы Kirka не рисует и не генерирует, а только
