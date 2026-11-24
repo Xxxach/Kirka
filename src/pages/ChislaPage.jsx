@@ -4,6 +4,8 @@ import { kcalRange, resolveFood } from '../data/foodHelpers';
 import { FoodIcon } from '../components/FoodIcon';
 import { TilePopover } from '../components/TilePopover';
 import { LiquidMenu } from '../components/LiquidMenu';
+import { AboutBlock } from '../components/AboutBlock';
+import { chislaAbout } from '../data/textAbout';
 
 const round = (value) => Math.round(value);
 
@@ -803,6 +805,8 @@ export function ChislaPage() {
           </aside>
         </div>
       </div>
+
+      <AboutBlock data={chislaAbout} label="О калькуляторе калорий" />
 
       {rows.length > 0 && (
         <div

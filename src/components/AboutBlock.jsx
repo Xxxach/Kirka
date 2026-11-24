@@ -29,15 +29,16 @@ function FaqItem({ q, a }) {
   );
 }
 
-export function AboutBlock({ mode }) {
+export function AboutBlock({ mode, data, label = 'О виде текста' }) {
   const [open, setOpen] = useState(false);
   const id = useId();
-  const about = textAbout[mode];
-  const meta = modeByValue[mode];
+  const about = data || textAbout[mode];
+  const meta = data ? { points: data.points || [] } : modeByValue[mode];
+  const lead = data ? data.lead : NO_PROMPT_LEAD;
   if (!about || !meta) return null;
 
   return (
-    <section className="about-card" aria-label="О виде текста">
+    <section className="about-card" aria-label={label}>
       <h1>
         <button
           type="button"
@@ -56,7 +57,7 @@ export function AboutBlock({ mode }) {
       <Fold open={open}>
         <div id={id} className="about-body">
           <p className="about-intro">
-            <span className="font-semibold text-slate-700">{NO_PROMPT_LEAD}</span> {about.intro}
+            <span className="font-semibold text-slate-700">{lead}</span> {about.intro}
           </p>
           <ul className="about-points">
             {meta.points.map((point) => (
