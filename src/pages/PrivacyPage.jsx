@@ -3,11 +3,11 @@
 const OPERATOR = 'Оганнисян Хачик Арманович';
 const CONTACT_EMAIL = 'khogannisyan@yandex.ru';
 
-const sectionClass = 'flex flex-col gap-2';
-const headingClass = 'text-lg font-semibold text-slate-800';
-const textClass = 'text-sm text-slate-600 leading-relaxed';
-const strongClass = 'font-medium text-slate-700';
-const linkClass = 'underline hover:text-slate-800';
+const sectionClass = 'doc-section';
+const headingClass = 'doc-h2';
+const textClass = 'doc-text';
+const strongClass = 'doc-strong';
+const linkClass = 'doc-link';
 
 const summary = [
   'Регистрации и аккаунтов нет: имя, почту и телефон мы не спрашиваем.',
@@ -110,9 +110,9 @@ const rights = [
 
 function Table({ head, rows, keys }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white/60">
-      <table className="w-full min-w-[34rem] text-left text-sm">
-        <thead className="bg-slate-100/70 text-xs uppercase tracking-wide text-slate-500">
+    <div className="doc-table-wrap">
+      <table className="w-full min-w-[34rem] text-left text-sm border-collapse">
+        <thead className="doc-table-head">
           <tr>
             {head.map((h) => (
               <th key={h} className="px-4 py-2 font-semibold">
@@ -121,7 +121,7 @@ function Table({ head, rows, keys }) {
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 text-slate-600">
+        <tbody className="divide-y divide-[#7A2432]/10 text-slate-600">
           {rows.map((row) => (
             <tr key={row[keys[0]]} className="align-top">
               {keys.map((k, i) => (
@@ -140,23 +140,47 @@ function Table({ head, rows, keys }) {
   );
 }
 
+function H2({ children }) {
+  const m = typeof children === 'string' ? children.match(/^(\d+)\.\s+(.*)$/s) : null;
+  return (
+    <h2 className={headingClass}>
+      {m ? (
+        <>
+          <span className="doc-num">{m[1]}</span>
+          <span>{m[2]}</span>
+        </>
+      ) : (
+        children
+      )}
+    </h2>
+  );
+}
+
+const chips = ['Без регистрации', 'Файлы не сохраняются', 'Данные не продаём', 'Бесплатно'];
+
 export function PrivacyPage() {
   return (
     <div className="flex flex-col px-5 py-1 gap-6 max-w-3xl mx-auto">
-      <div className="bg-white/70 rounded-3xl border border-white/60 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.12)] p-6 sm:p-8 flex flex-col gap-7">
+      <div className="doc-card">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800 mb-1">
+          <span className="doc-kicker">Документ</span>
+          <h1 className="doc-title">
             Политика конфиденциальности
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="doc-meta">
             Политика в отношении обработки персональных данных. Редакция от 10
             ноября 2026.
           </p>
+          <ul className="doc-chips">
+            {chips.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
         </div>
 
-        <div className="rounded-2xl border border-[#7A2432]/15 bg-[#7A2432]/5 p-4 sm:p-5 flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-[#7A2432]">Коротко</h2>
-          <ul className="flex flex-col gap-1.5 text-sm text-slate-700 leading-relaxed list-disc pl-5">
+        <div className="doc-summary">
+          <h2>Коротко</h2>
+          <ul>
             {summary.map((s) => (
               <li key={s}>{s}</li>
             ))}
@@ -164,7 +188,7 @@ export function PrivacyPage() {
         </div>
 
         <div className={sectionClass}>
-          <h2 className={headingClass}>1. Кто мы и о чём этот документ</h2>
+          <H2>1. Кто мы и о чём этот документ</H2>
           <p className={textClass}>
             Kirka (kirka-ai.ru) — бесплатный сервис с ИИ-инструментами:
             генерация текстов, перевод кода между языками программирования,
@@ -193,7 +217,7 @@ export function PrivacyPage() {
         </div>
 
         <div className={sectionClass}>
-          <h2 className={headingClass}>2. На чём основаны наши правила</h2>
+          <H2>2. На чём основаны наши правила</H2>
           <p className={textClass}>
             Мы исходим из Конституции Российской Федерации: статья 23
             гарантирует право на неприкосновенность частной жизни, личную и
@@ -214,7 +238,7 @@ export function PrivacyPage() {
         </div>
 
         <div className={sectionClass}>
-          <h2 className={headingClass}>3. Какие данные мы обрабатываем</h2>
+          <H2>3. Какие данные мы обрабатываем</H2>
           <p className={textClass}>
             На сайте нет регистрации, паролей и личных кабинетов, поэтому мы не
             знаем, кто вы. Данные обрабатываются только в целях работы сервиса,
@@ -243,7 +267,7 @@ export function PrivacyPage() {
         </div>
 
         <div className={sectionClass}>
-          <h2 className={headingClass}>4. Кто ещё участвует в обработке</h2>
+          <H2>4. Кто ещё участвует в обработке</H2>
           <p className={textClass}>
             Мы не продаём данные и не передаём их для рекламы. Они доступны
             только техническим поставщикам, без которых сайт не работает:
@@ -301,7 +325,7 @@ export function PrivacyPage() {
         </div>
 
         <div className={sectionClass}>
-          <h2 className={headingClass}>5. Cookie и аналитика</h2>
+          <H2>5. Cookie и аналитика</H2>
           <p className={textClass}>
             <span className={strongClass}>Технические данные.</span> Для работы
             сайта в вашем браузере хранится отметка о закрытой плашке cookie.
@@ -329,7 +353,7 @@ export function PrivacyPage() {
         </div>
 
         <div className={sectionClass}>
-          <h2 className={headingClass}>6. Реклама</h2>
+          <H2>6. Реклама</H2>
           <p className={textClass}>
             Сайт бесплатный и в будущем будет показывать рекламу. Сейчас
             рекламные места — заглушки, они ничего не собирают. Перед
@@ -339,7 +363,7 @@ export function PrivacyPage() {
         </div>
 
         <div className={sectionClass}>
-          <h2 className={headingClass}>7. Хранение и защита</h2>
+          <H2>7. Хранение и защита</H2>
           <p className={textClass}>
             У нас нет базы данных пользователей. Тексты, код, фото и документы
             существуют только на время обработки запроса, после чего удаляются.
@@ -359,11 +383,9 @@ export function PrivacyPage() {
         </div>
 
         <div className={sectionClass}>
-          <h2 className={headingClass}>
-            8. Ваши права и как ими воспользоваться
-          </h2>
+          <H2>8. Ваши права и как ими воспользоваться</H2>
           <p className={textClass}>Вы вправе:</p>
-          <ul className="flex flex-col gap-1.5 text-sm text-slate-600 leading-relaxed list-disc pl-5">
+          <ul className="doc-list">
             {rights.map((r) => (
               <li key={r}>{r}</li>
             ))}
@@ -402,7 +424,7 @@ export function PrivacyPage() {
         </div>
 
         <div className={sectionClass}>
-          <h2 className={headingClass}>9. Возраст</h2>
+          <H2>9. Возраст</H2>
           <p className={textClass}>
             Сайт не предназначен для лиц младше 18 лет. Мы не запрашиваем
             возраст и сознательно не обрабатываем данные детей. Если вы
@@ -412,7 +434,7 @@ export function PrivacyPage() {
         </div>
 
         <div className={sectionClass}>
-          <h2 className={headingClass}>10. Изменения</h2>
+          <H2>10. Изменения</H2>
           <p className={textClass}>
             Мы будем обновлять эту политику, например при подключении рекламы,
             новых ИИ-моделей или смене хостинга. Актуальная версия всегда на
