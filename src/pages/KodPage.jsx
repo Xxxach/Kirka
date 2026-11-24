@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { AboutBlock } from '../components/AboutBlock';
+import { toolAbout } from '../data/toolAbout';
 import { getApiBase, friendlyError, fetchAi, softClean } from '../api';
 import EditorImport from 'react-simple-code-editor';
 import hljs from 'highlight.js/lib/core';
@@ -366,6 +368,9 @@ export function KodPage() {
             </p>
           )}
         </div>
+      </div>
+      <div className="col-span-full">
+        <AboutBlock data={toolAbout['kod-page']} label="О сервисе" />
       </div>
     </div>
   );

@@ -112,7 +112,7 @@ export function LogoInfo({ children, className = 'items-start' }) {
               transform: visible ? 'scale(1)' : 'scale(0.9)',
               transition: `clip-path ${DURATION}ms ${EASE}, opacity ${DURATION * 0.7}ms ${EASE}, transform ${DURATION}ms ${EASE}`,
             }}
-            className="pointer-events-none fixed z-200 rounded-3xl border border-white/60 bg-white/45 p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_12px_40px_-8px_rgba(0,0,0,0.25)] backdrop-blur-xl backdrop-saturate-150"
+            className="pointer-events-none fixed z-200 logo-pop rounded-3xl border border-white/60 p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_12px_40px_-8px_rgba(0,0,0,0.25)]"
           >
             <p className="mb-1 text-sm font-semibold text-[#7A2432]">
               Kirka (Кирка)
@@ -122,22 +122,25 @@ export function LogoInfo({ children, className = 'items-start' }) {
             </p>
             <ul className="space-y-1.5 text-xs leading-relaxed text-slate-600">
               <li>
-                <b className="text-slate-800">Текст-моменты</b> — ИИ пишет
-                резюме, сопроводительные письма, поздравления, объявления, посты
-                для соцсетей и слоганы.
+                <b className="text-slate-800">Текст-моменты</b> — ИИ пишет 25
+                видов текстов: резюме, сопроводительные и деловые письма,
+                претензии, объявления, посты, поздравления, сценарии,
+                пересказы и сочинения.
               </li>
               <li>
-                <b className="text-slate-800">Код-моменты</b> — ИИ переводит код
-                с одного языка программирования на другой.
+                <b className="text-slate-800">Код-моменты</b> — переводит код
+                между JavaScript, TypeScript, Python, Java и C#. Язык исходника
+                определяется сам.
               </li>
               <li>
-                <b className="text-slate-800">Фото-моменты</b> — сжимает
-                фотографии и увеличивает их разрешение (удаление фона откроется
-                позже).
+                <b className="text-slate-800">Фото-моменты</b> — сжимает фото и
+                улучшает качество: меньше шумов, больше резкости (удаление фона
+                откроется позже).
               </li>
               <li>
-                <b className="text-slate-800">Файл-моменты</b> — конвертирует
-                PDF в Word и обратно, а также форматы изображений.
+                <b className="text-slate-800">Файл-моменты</b> — переводит PDF в
+                Word и обратно, меняет формат картинок (PNG, JPG, WEBP, ICO) и
+                упаковывает файлы в ZIP-архив.
               </li>
               <li>
                 <b className="text-slate-800">Числа-моменты</b> — считает

@@ -1107,3 +1107,9 @@ html.dark-theme.has-svg-backdrop .tab-capsule {
 /* Рекламная заглушка: бордовая днём, синяя ночью */
 .ad-slot { border: 0; background: linear-gradient(90deg, #7a2432, #8f2d3f 50%, #7a2432); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 6px 16px -8px rgba(122, 36, 50, 0.55); }
 html.dark-theme .ad-slot { background: linear-gradient(90deg, #1d4ed8, #2563eb 50%, #1d4ed8); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 6px 16px -8px rgba(37, 99, 235, 0.6); }
+
+/* Плашка у логотипа: то же стекло с преломлением, что у шапки и окон */
+.logo-pop { background: rgba(255, 255, 255, 0.62); -webkit-backdrop-filter: blur(22px) saturate(1.7); backdrop-filter: blur(22px) saturate(1.7); }
+html.dark-theme .logo-pop { background: rgba(12, 12, 12, 0.62); }
+html.has-svg-backdrop .logo-pop { background: rgba(255, 255, 255, 0.5); -webkit-backdrop-filter: url(#refract); backdrop-filter: url(#refract); }
+html.dark-theme.has-svg-backdrop .logo-pop { background: rgba(12, 12, 12, 0.56); }

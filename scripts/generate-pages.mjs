@@ -3,6 +3,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { modeOptions, modeGroups } from '../src/data/textModes.js';
 import { textAbout, NO_PROMPT_LEAD } from '../src/data/textAbout.js';
+import { toolAbout } from '../src/data/toolAbout.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
@@ -12,12 +13,12 @@ const staticPages = [
   {
     slug: 'photo-page',
     title: 'Фото: сжатие и обработка — Kirka',
-    description: 'Сжатие и обработка фотографий онлайн: уменьшите размер фото прямо в браузере. Бесплатно и без регистрации.',
+    description: 'Сжатие и улучшение фото онлайн: уменьшите размер снимка или добавьте резкость прямо в браузере. Бесплатно и без регистрации.',
   },
   {
     slug: 'kod-page',
     title: 'Перевод кода между языками — Kirka',
-    description: 'ИИ без промптов: перевод кода с одного языка программирования на другой. Выберите языки, нажмите, готово. Бесплатно.',
+    description: 'Перевод кода онлайн между JavaScript, TypeScript, Python, Java и C#. ИИ без промптов, бесплатно и без регистрации.',
   },
   {
     slug: 'file-page',
@@ -27,7 +28,7 @@ const staticPages = [
   {
     slug: 'chisla-page',
     title: 'Числа-моменты: калькулятор калорий — Kirka',
-    description: 'Калькулятор калорий онлайн без ввода граммов: выберите продукт и порцию в ложках, чашках или штуках. Бесплатно и без регистрации.',
+    description: 'Калькулятор калорий и БЖУ онлайн без граммов: выберите продукт и порцию в ложках, чашках или штуках. Бесплатно и без регистрации.',
   },
   {
     slug: 'privacy',
@@ -72,39 +73,78 @@ const navHtml = `<nav>${[
     .join('')}<li><a href="/privacy/">Политика конфиденциальности</a></li></ul>`,
 ].join('')}</nav>`;
 
-const bodyHtml = ({ title, description, mode }) => {
-  const about = mode ? textAbout[mode.value] : null;
+const cleanTitle = (title) => title.replace(/\s+[\u2014-]\s+Kirka$/, '');
+
+const aboutOf = ({ mode, slug }) => (mode ? textAbout[mode.value] : toolAbout[slug]);
+
+const bodyHtml = (page) => {
+  const { title, description, mode } = page;
+  const about = aboutOf(page);
   if (!about) {
-    return `<h1>${esc(title.replace(/\s+[—-]\s+Kirka$/, ''))}</h1><p>${esc(description)}</p>${navHtml}`;
+    return `<h1>${esc(cleanTitle(title))}</h1><p>${esc(description)}</p>${navHtml}`;
   }
+  const lead = mode ? NO_PROMPT_LEAD : about.lead;
+  const pointList = mode ? mode.points : about.points;
   const faq = about.faq
     .map((item) => `<h3>${esc(item.q)}</h3><p>${esc(item.a)}</p>`)
     .join('');
-  const points = mode.points.map((point) => `<li>${esc(point)}</li>`).join('');
-  return `<h1>${esc(about.h1)}</h1><p>${esc(`${NO_PROMPT_LEAD} ${about.intro}`)}</p><ul>${points}</ul><h2>Частые вопросы</h2>${faq}${navHtml}`;
+  const points = pointList.map((point) => `<li>${esc(point)}</li>`).join('');
+  return `<h1>${esc(about.h1)}</h1><p>${esc(`${lead} ${about.intro}`)}</p><ul>${points}</ul><h2>Частые вопросы</h2>${faq}${navHtml}`;
 };
 
-const faqJsonLd = (mode) => {
-  const about = textAbout[mode.value];
-  const data = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: about.faq.map((item) => ({
-      '@type': 'Question',
-      name: item.q,
-      acceptedAnswer: { '@type': 'Answer', text: item.a },
-    })),
-  };
-  return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
+const ldScript = (data) =>
+  `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
+
+// Микроразметка для поисковиков: вопросы-ответы, хлебные крошки и описание приложения.
+const jsonLd = (page) => {
+  const out = [];
+  const about = aboutOf(page);
+  if (about) {
+    out.push({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: about.faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    });
+  }
+  if (page.slug) {
+    const url = `${SITE}/${page.slug}/`;
+    const name = cleanTitle(page.title);
+    out.push({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Kirka', item: `${SITE}/` },
+        { '@type': 'ListItem', position: 2, name, item: url },
+      ],
+    });
+    if (toolAbout[page.slug]) {
+      out.push({
+        '@context': 'https://schema.org',
+        '@type': 'WebApplication',
+        name,
+        url,
+        description: page.description,
+        applicationCategory: page.slug === 'chisla-page' ? 'HealthApplication' : 'UtilitiesApplication',
+        operatingSystem: 'Any',
+        inLanguage: 'ru',
+        isAccessibleForFree: true,
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'RUB' },
+      });
+    }
+  }
+  return out.map(ldScript).join('');
 };
 
 const rootPattern = /<div id="root">[\s\S]*?<\/div>/;
 
 const withBody = (html, page) => {
   let out = replaceOnce(html, rootPattern, () => `<div id="root">${bodyHtml(page)}</div>`);
-  if (page.mode && textAbout[page.mode.value]) {
-    out = replaceOnce(out, /<\/head>/, () => `${faqJsonLd(page.mode)}</head>`);
-  }
+  const ld = jsonLd(page);
+  if (ld) out = replaceOnce(out, /<\/head>/, () => `${ld}</head>`);
   return out;
 };
 

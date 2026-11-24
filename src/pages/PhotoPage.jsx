@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { AboutBlock } from '../components/AboutBlock';
+import { toolAbout } from '../data/toolAbout';
 import { getApiBase, friendlyError } from '../api';
 import { trackGoal } from '../analytics';
 import { ThemedSelect as Select } from '../components/ThemedSelect';
@@ -299,6 +301,9 @@ export function PhotoPage() {
             )}
           </div>
         </div>
+      </div>
+      <div className="col-span-full">
+        <AboutBlock data={toolAbout['photo-page']} label="О сервисе" />
       </div>
     </div>
   );
