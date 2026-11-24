@@ -18,7 +18,7 @@ const tabs = [
 
 // Фон активной вкладки рисует «жидкий» индикатор (см. TabsCapsule), тут только цвет текста.
 const tabClass = ({ isActive }) =>
-  `relative z-10 px-4 py-1 pb-1.5 rounded-full text-sm font-medium transition-colors duration-300 select-none ${
+  `relative z-10 px-4 py-1 pb-1.5 rounded-full text-sm font-medium text-center text-balance leading-tight transition-colors duration-300 select-none ${
     isActive ? 'text-[#7A2432]' : 'text-slate-500 hover:text-slate-800'
   }`;
 
@@ -250,7 +250,7 @@ function TabsCapsule() {
             tabRefs.current[index] = el;
           }}
         >
-          {label}
+          {label.replace('-', ' ')}
         </NavLink>
       ))}
     </div>
