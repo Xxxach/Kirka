@@ -199,7 +199,7 @@ export function PhotoPage() {
             placeholder="Выбери режим"
           />
           <p className="text-xs text-slate-400 px-1">
-            Новые возможности будут открываться в ходе бета-теста.
+            Новые возможности появятся позже.
           </p>
         </div>
         <Collapse show={photoForm.mode.value === 'compress'}>
@@ -219,7 +219,7 @@ export function PhotoPage() {
                 isOptionDisabled={(option) => option.locked}
               />
               <p className="text-xs text-slate-400 px-1">
-                Улучшенная модель с лучшей детализацией откроется в ходе бета-теста.
+                Улучшенная модель с лучшей детализацией откроется позже.
               </p>
             </div>
             <div className="flex flex-col gap-1">

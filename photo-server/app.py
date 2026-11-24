@@ -322,7 +322,7 @@ def process():
     if mode in HEAVY_MODES and mode not in ENABLED_HEAVY_MODES:
         return jsonify({
             "error": "beta_locked",
-            "message": "Этот режим откроется в ходе бета-теста. Следи за обновлениями!",
+            "message": "Этот режим откроется позже. Следи за обновлениями!",
         }), 403
 
     # Улучшение качества: уровень 1-2 открыт, 3-4 (тариф «Улучшенная») — позже.
@@ -336,7 +336,7 @@ def process():
         if request.form.get("tier", "basic") != "basic" or level not in (1, 2):
             return jsonify({
                 "error": "tier_locked",
-                "message": "Этот уровень откроется в ходе бета-теста.",
+                "message": "Этот уровень откроется позже.",
             }), 400
 
     limit_response = check_limit(level if mode == "upscale" else 1)

@@ -118,7 +118,7 @@ export function LogoInfo({ children, className = 'items-start' }) {
               Kirka (Кирка)
             </p>
             <p className="mb-2 text-xs leading-relaxed text-slate-600">
-              Бесплатный сервис для повседневных задач. Идёт бета-тест.
+              Бесплатный сервис для повседневных задач: тексты, код, фото, файлы и калории.
             </p>
             <ul className="space-y-1.5 text-xs leading-relaxed text-slate-600">
               <li>
