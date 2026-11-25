@@ -1,4 +1,4 @@
-export const METRIKA_ID = 113368493;
+const METRIKA_ID = 113368493;
 
 function ym(...args) {
   if (!import.meta.env.PROD) return;

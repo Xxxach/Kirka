@@ -5,7 +5,9 @@ import { FoodIcon } from '../components/FoodIcon';
 import { TilePopover } from '../components/TilePopover';
 import { LiquidMenu } from '../components/LiquidMenu';
 import { AboutBlock } from '../components/AboutBlock';
+import { CalorieTable } from '../components/CalorieTable';
 import { chislaAbout } from '../data/textAbout';
+import { trackGoal } from '../analytics';
 
 const round = (value) => Math.round(value);
 
@@ -20,10 +22,10 @@ const DAILY_REFERENCE = 2000;
 
 // Колонки меню категорий на десктопе
 const CATEGORY_GROUPS = [
-  { label: 'Каждый день', ids: ['hot', 'drinks', 'bread'] },
-  { label: 'Основа', ids: ['grains', 'meat', 'dairy'] },
-  { label: 'Свежее и добавки', ids: ['fat', 'veg', 'fruit'] },
-  { label: 'Готовое и сладкое', ids: ['sweet', 'dish'] },
+  { label: 'Блюда', ids: ['hot', 'dish'] },
+  { label: 'Основные продукты', ids: ['meat', 'dairy', 'grains', 'bread', 'fat'] },
+  { label: 'Овощи и фрукты', ids: ['veg', 'fruit'] },
+  { label: 'Напитки и сладкое', ids: ['drinks', 'sweet', 'snacks'] },
 ];
 
 const DESKTOP_QUERY = '(min-width: 768px)';
@@ -493,6 +495,7 @@ export function ChislaPage() {
     const { displayName } = resolveFood(item, { variant, lf });
     const extra = sauces.length ? ` + ${sauces.map((id) => SAUCE_UI.find((sauce) => sauce.id === id).name.toLowerCase()).join(', ')}` : '';
     setNotice(`Добавлено: ${displayName}, ${item.portions[index].label.toLowerCase()}${extra}`);
+    trackGoal('calc_added', { sauces: sauces.length });
   };
 
   const changeCount = (row, delta) => {
@@ -807,6 +810,8 @@ export function ChislaPage() {
       </div>
 
       <AboutBlock data={chislaAbout} label="О калькуляторе калорий" />
+
+      <CalorieTable />
 
       {rows.length > 0 && (
         <div

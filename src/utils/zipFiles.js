@@ -12,7 +12,7 @@ export function formatSize(bytes) {
 
 export const itemKey = (item) => `${item.path}|${item.file.size}|${item.file.lastModified}`;
 
-export function uniqueName(path, used) {
+function uniqueName(path, used) {
   if (!used.has(path)) {
     used.add(path);
     return path;

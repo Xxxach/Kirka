@@ -5,34 +5,18 @@ import { extraFoods } from './foodsExtra.js';
 export { resolveFood, kcalRange };
 
 export const categories = [
-  { id: 'hot', label: 'Частое' },
+  { id: 'hot', label: 'Популярное' },
   {
-    id: 'drinks',
-    label: 'Напитки',
+    id: 'dish',
+    label: 'Готовые блюда',
     subs: [
-      { id: 'coffee', label: 'Кофе и чай' },
-      { id: 'milk', label: 'Молочные и растительные' },
-      { id: 'juice', label: 'Соки и смузи' },
-      { id: 'soda', label: 'Газировка и энергетики' },
-      { id: 'alco', label: 'Алкоголь' },
-    ],
-  },
-  {
-    id: 'bread',
-    label: 'Хлеб и выпечка',
-    subs: [
-      { id: 'loaf', label: 'Хлеб' },
-      { id: 'bake', label: 'Булочки и пироги' },
-      { id: 'cake', label: 'Печенье и торты' },
-    ],
-  },
-  {
-    id: 'grains',
-    label: 'Каши и гарниры',
-    subs: [
-      { id: 'porridge', label: 'Каши и хлопья' },
-      { id: 'side', label: 'Крупы, бобовые, макароны' },
-      { id: 'potato', label: 'Картофель' },
+      { id: 'soup', label: 'Супы' },
+      { id: 'main', label: 'Горячее' },
+      { id: 'italy', label: 'Паста и пицца' },
+      { id: 'asia', label: 'Азия и суши' },
+      { id: 'salad', label: 'Салаты' },
+      { id: 'dough', label: 'Пельмени, блины, запеканки' },
+      { id: 'fast', label: 'Фастфуд и бутерброды' },
     ],
   },
   {
@@ -49,24 +33,40 @@ export const categories = [
     id: 'dairy',
     label: 'Молочное и яйца',
     subs: [
-      { id: 'eggs', label: 'Яйца' },
+      { id: 'milk', label: 'Молоко и кефир' },
+      { id: 'curd', label: 'Творог, йогурты, сметана' },
       { id: 'cheese', label: 'Сыры' },
-      { id: 'curd', label: 'Творог и йогурты' },
-      { id: 'cream', label: 'Сметана и сливки' },
+      { id: 'eggs', label: 'Яйца' },
+    ],
+  },
+  {
+    id: 'grains',
+    label: 'Каши и гарниры',
+    subs: [
+      { id: 'porridge', label: 'Каши и хлопья' },
+      { id: 'side', label: 'Крупы, бобовые, макароны' },
+      { id: 'potato', label: 'Картофель' },
+    ],
+  },
+  {
+    id: 'bread',
+    label: 'Хлеб и выпечка',
+    subs: [
+      { id: 'loaf', label: 'Хлеб, лаваш, сушки' },
+      { id: 'bake', label: 'Булочки и пироги' },
     ],
   },
   {
     id: 'fat',
-    label: 'Масло, соусы, сладкое',
+    label: 'Масла и соусы',
     subs: [
       { id: 'oil', label: 'Масла и жиры' },
       { id: 'sauce', label: 'Соусы' },
-      { id: 'sweetener', label: 'Сахар, мёд, пасты' },
     ],
   },
   {
     id: 'veg',
-    label: 'Овощи',
+    label: 'Овощи и грибы',
     subs: [
       { id: 'fresh', label: 'Свежие овощи' },
       { id: 'root', label: 'Корнеплоды и лук' },
@@ -78,41 +78,50 @@ export const categories = [
     id: 'fruit',
     label: 'Фрукты и ягоды',
     subs: [
-      { id: 'pome', label: 'Яблоки и груши' },
+      { id: 'pome', label: 'Яблоки, груши, косточковые' },
       { id: 'citrus', label: 'Цитрусовые' },
-      { id: 'berry', label: 'Ягоды' },
-      { id: 'stone', label: 'Косточковые' },
+      { id: 'berry', label: 'Ягоды, арбуз, дыня' },
       { id: 'tropic', label: 'Экзотические' },
-      { id: 'melon', label: 'Арбуз и дыня' },
       { id: 'dried', label: 'Сухофрукты' },
     ],
   },
   {
-    id: 'sweet',
-    label: 'Сладости и снеки',
+    id: 'drinks',
+    label: 'Напитки',
     subs: [
-      { id: 'bars', label: 'Батончики' },
+      { id: 'coffee', label: 'Кофе и чай' },
+      { id: 'juice', label: 'Соки и смузи' },
+      { id: 'soda', label: 'Газировка и энергетики' },
+      { id: 'alco', label: 'Алкоголь' },
+    ],
+  },
+  {
+    id: 'sweet',
+    label: 'Сладости и десерты',
+    subs: [
       { id: 'choc', label: 'Шоколад и конфеты' },
-      { id: 'drage', label: 'Драже и жевательные' },
+      { id: 'bars', label: 'Батончики' },
+      { id: 'cake', label: 'Торты, печенье, пирожные' },
       { id: 'cold', label: 'Мороженое и десерты' },
+      { id: 'drage', label: 'Драже и жевательные' },
+      { id: 'sweetener', label: 'Сахар, мёд, варенье, пасты' },
+    ],
+  },
+  {
+    id: 'snacks',
+    label: 'Снеки и орехи',
+    subs: [
       { id: 'snack', label: 'Чипсы и снеки' },
       { id: 'nuts', label: 'Орехи и семена' },
     ],
   },
-  {
-    id: 'dish',
-    label: 'Готовые блюда',
-    subs: [
-      { id: 'soup', label: 'Супы' },
-      { id: 'main', label: 'Горячее' },
-      { id: 'italy', label: 'Паста и пицца' },
-      { id: 'asia', label: 'Азия и суши' },
-      { id: 'salad', label: 'Салаты' },
-      { id: 'dough', label: 'Пельмени, блины, запеканки' },
-      { id: 'fast', label: 'Фастфуд и бутерброды' },
-    ],
-  },
 ];
+
+// Объединённые мелкие подкатегории: id из foodsExtra и subOf остаются прежними.
+const SUB_MERGE = { stone: 'pome', melon: 'berry', cream: 'curd' };
+const subCategory = Object.fromEntries(
+  categories.flatMap((entry) => (entry.subs || []).map((sub) => [sub.id, entry.id])),
+);
 
 const rawFoods = [
   food('coffee', 'drinks', '☕', 'Кофе чёрный', 1, 0.1, 0, 0, [['Маленькая кофейная чашка', 100], ['Обычная чашка', 200], ['Большая кружка', 300]], { ...ML, hot: true, alias: 'эспрессо американо' }),
@@ -621,13 +630,17 @@ const subOf = {
 // Новые продукты идут после старых; их подкатегория задана в самих данных (foodsExtra.js)
 const allFoods = [...rawFoods, ...extraFoods];
 
-export const foods = allFoods.map((item, index) => ({
-  ...item,
-  emoji: iconOverrides[item.id] || item.emoji,
-  sub: subOf[item.id]?.[0] || item.sub || '',
-  order: subOf[item.id]?.[1] ?? 1000 + index,
-}));
-
+export const foods = allFoods.map((item, index) => {
+  const rawSub = subOf[item.id]?.[0] || item.sub || '';
+  const sub = SUB_MERGE[rawSub] || rawSub;
+  return {
+    ...item,
+    emoji: iconOverrides[item.id] || item.emoji,
+    cat: subCategory[sub] || item.cat,
+    sub,
+    order: (subOf[item.id]?.[1] ?? 1000 + index) + (SUB_MERGE[rawSub] ? 100 : 0),
+  };
+});
 
 export const foodById = Object.fromEntries(foods.map((item) => [item.id, item]));
 

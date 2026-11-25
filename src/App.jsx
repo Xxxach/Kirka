@@ -45,7 +45,7 @@ const PAGE_TITLES = {
   '/photo-page': 'Фото: сжатие и обработка — Kirka',
   '/kod-page': 'Перевод кода между языками — Kirka',
   '/file-page': 'Конвертация файлов: PDF, Word, изображения — Kirka',
-  '/chisla-page': 'Числа-моменты: калькулятор калорий — Kirka',
+  '/chisla-page': 'Калькулятор калорий и БЖУ без граммов — Kirka',
   '/privacy': 'Политика конфиденциальности — Kirka',
 };
 

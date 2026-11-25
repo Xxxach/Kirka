@@ -13,7 +13,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
-from PIL import Image, ImageFilter
+from PIL import Image
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
@@ -344,7 +344,6 @@ def process():
         return limit_response
 
     compression = request.form.get("compression", "medium")
-    scale = int(request.form.get("scale", 2))
     target_format = request.form.get("target_format", "png").lower()
     tier = request.form.get("tier", "basic")
 

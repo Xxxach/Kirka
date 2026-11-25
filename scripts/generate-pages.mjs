@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { modeOptions, modeGroups } from '../src/data/textModes.js';
 import { textAbout, NO_PROMPT_LEAD } from '../src/data/textAbout.js';
 import { toolAbout } from '../src/data/toolAbout.js';
+import { calorieSections } from '../src/data/calorieSections.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
@@ -27,7 +28,7 @@ const staticPages = [
   },
   {
     slug: 'chisla-page',
-    title: 'Числа-моменты: калькулятор калорий — Kirka',
+    title: 'Калькулятор калорий и БЖУ без граммов — Kirka',
     description: 'Калькулятор калорий и БЖУ онлайн без граммов: выберите продукт и порцию в ложках, чашках или штуках. Бесплатно и без регистрации.',
   },
   {
@@ -77,6 +78,16 @@ const cleanTitle = (title) => title.replace(/\s+[\u2014-]\s+Kirka$/, '');
 
 const aboutOf = ({ mode, slug }) => (mode ? textAbout[mode.value] : toolAbout[slug]);
 
+const calorieHtml = () =>
+  `<h2>Калорийность продуктов на 100 г</h2>${calorieSections()
+    .map(
+      (section) =>
+        `<h3>${esc(section.label)}</h3><table><thead><tr><th>Продукт</th><th>Ккал</th><th>Б</th><th>Ж</th><th>У</th></tr></thead><tbody>${section.rows
+          .map((row) => `<tr><td>${esc(row.name)}</td><td>${row.kcal}</td><td>${row.p}</td><td>${row.f}</td><td>${row.c}</td></tr>`)
+          .join('')}</tbody></table>`,
+    )
+    .join('')}`;
+
 const bodyHtml = (page) => {
   const { title, description, mode } = page;
   const about = aboutOf(page);
@@ -89,7 +100,8 @@ const bodyHtml = (page) => {
     .map((item) => `<h3>${esc(item.q)}</h3><p>${esc(item.a)}</p>`)
     .join('');
   const points = pointList.map((point) => `<li>${esc(point)}</li>`).join('');
-  return `<h1>${esc(about.h1)}</h1><p>${esc(`${lead} ${about.intro}`)}</p><ul>${points}</ul><h2>Частые вопросы</h2>${faq}${navHtml}`;
+  const table = page.slug === 'chisla-page' ? calorieHtml() : '';
+  return `<h1>${esc(about.h1)}</h1><p>${esc(`${lead} ${about.intro}`)}</p><ul>${points}</ul><h2>Частые вопросы</h2>${faq}${table}${navHtml}`;
 };
 
 const ldScript = (data) =>
