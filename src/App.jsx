@@ -13,6 +13,7 @@ import { CookieNotice } from './components/CookieNotice';
 import { SiteFooter } from './components/SiteFooter';
 import { trackHit } from './analytics';
 import { modeForPath, modeOptions, modePath, isTextPathname, normalizePath } from './data/textModes';
+import { toolSeo } from './data/toolSeo.js';
 
 const loadPhotoPage = () =>
   import('./pages/PhotoPage').then((m) => ({ default: m.PhotoPage }));
@@ -38,14 +39,14 @@ const ROUTER_BASENAME = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
 
 // Заголовок вкладки для каждой страницы (в Метрике тоже будут понятные названия).
 const DEFAULT_TITLE =
-  'Kirka (Кирка) — ИИ без промптов: тексты, код, фото и файлы';
+  'Kirka (Кирка) — ИИ без промптов: Текст-моменты, Код-моменты, Фото-моменты, Файл-моменты, Числа-моменты';
 const PAGE_TITLES = {
   ...Object.fromEntries(modeOptions.map((mode) => [modePath(mode.value), mode.title])),
   '/': DEFAULT_TITLE,
-  '/photo-page': 'Фото: сжатие и обработка — Kirka',
-  '/kod-page': 'Перевод кода между языками — Kirka',
-  '/file-page': 'Конвертация файлов: PDF, Word, изображения — Kirka',
-  '/chisla-page': 'Калькулятор калорий и БЖУ без граммов — Kirka',
+  '/photo-page': toolSeo['photo-page'].title,
+  '/kod-page': toolSeo['kod-page'].title,
+  '/file-page': toolSeo['file-page'].title,
+  '/chisla-page': toolSeo['chisla-page'].title,
   '/privacy': 'Политика конфиденциальности — Kirka',
 };
 

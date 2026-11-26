@@ -5,32 +5,14 @@ import { modeOptions, modeGroups } from '../src/data/textModes.js';
 import { textAbout, NO_PROMPT_LEAD } from '../src/data/textAbout.js';
 import { toolAbout } from '../src/data/toolAbout.js';
 import { calorieSections } from '../src/data/calorieSections.js';
+import { toolSeo, MOMENT_NAMES, kindsText } from '../src/data/toolSeo.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
 const SITE = (process.env.SITE_URL || 'https://kirka-ai.ru').replace(/\/+$/, '');
 
 const staticPages = [
-  {
-    slug: 'photo-page',
-    title: 'Фото: сжатие и обработка — Kirka',
-    description: 'Сжатие и улучшение фото онлайн: уменьшите размер снимка или добавьте резкость прямо в браузере. Бесплатно и без регистрации.',
-  },
-  {
-    slug: 'kod-page',
-    title: 'Перевод кода между языками — Kirka',
-    description: 'Перевод кода онлайн между JavaScript, TypeScript, Python, Java и C#. ИИ без промптов, бесплатно и без регистрации.',
-  },
-  {
-    slug: 'file-page',
-    title: 'Конвертация файлов: PDF, Word, изображения — Kirka',
-    description: 'Конвертация файлов онлайн: PDF, Word и изображения, а также упаковка файлов в ZIP-архив. Бесплатно и без регистрации.',
-  },
-  {
-    slug: 'chisla-page',
-    title: 'Калькулятор калорий и БЖУ без граммов — Kirka',
-    description: 'Калькулятор калорий и БЖУ онлайн без граммов: выберите продукт и порцию в ложках, чашках или штуках. Бесплатно и без регистрации.',
-  },
+  ...Object.entries(toolSeo).map(([slug, seo]) => ({ slug, ...seo })),
   {
     slug: 'privacy',
     title: 'Политика конфиденциальности — Kirka',
@@ -50,10 +32,10 @@ const textPages = modeOptions
 const pages = [...textPages, ...staticPages];
 
 const toolLinks = [
-  { slug: 'photo-page', label: 'Фото: сжатие и обработка' },
-  { slug: 'kod-page', label: 'Перевод кода' },
-  { slug: 'file-page', label: 'Конвертация файлов' },
-  { slug: 'chisla-page', label: 'Калькулятор калорий' },
+  { slug: 'photo-page', label: 'Фото-моменты: сжатие и улучшение фото' },
+  { slug: 'kod-page', label: 'Код-моменты: перевод кода' },
+  { slug: 'file-page', label: 'Файл-моменты: конвертер файлов' },
+  { slug: 'chisla-page', label: 'Числа-моменты: калькулятор калорий' },
 ];
 
 const esc = (value) => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -62,14 +44,16 @@ const source = readFileSync(join(dist, 'index.html'), 'utf8');
 
 const href = (slug) => (slug ? `/${slug}/` : '/');
 
-const navHtml = `<nav>${[
+const navHtml = `<nav><p>${esc(
+  `Kirka состоит из «моментов»: ${MOMENT_NAMES.join(', ')}. Текст-моменты: ${kindsText(modeOptions.length)} текстов без промптов.`,
+)}</p>${[
   ...modeGroups.map(
     (group) =>
       `<h2>${esc(group.label)}</h2><ul>${group.options
         .map((option) => `<li><a href="${href(option.slug)}">${esc(option.label)}</a></li>`)
         .join('')}</ul>`,
   ),
-  `<h2>Инструменты</h2><ul>${toolLinks
+  `<h2>Другие моменты</h2><ul>${toolLinks
     .map((tool) => `<li><a href="${href(tool.slug)}">${esc(tool.label)}</a></li>`)
     .join('')}<li><a href="/privacy/">Политика конфиденциальности</a></li></ul>`,
 ].join('')}</nav>`;
@@ -124,7 +108,7 @@ const jsonLd = (page) => {
   }
   if (page.slug) {
     const url = `${SITE}/${page.slug}/`;
-    const name = cleanTitle(page.title);
+    const name = page.moment || cleanTitle(page.title);
     out.push({
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
@@ -138,6 +122,7 @@ const jsonLd = (page) => {
         '@context': 'https://schema.org',
         '@type': 'WebApplication',
         name,
+        alternateName: cleanTitle(page.title),
         url,
         description: page.description,
         applicationCategory: page.slug === 'chisla-page' ? 'HealthApplication' : 'UtilitiesApplication',
@@ -228,5 +213,28 @@ ${urls
 </urlset>
 `;
 writeFileSync(join(dist, 'sitemap.xml'), sitemap);
+
+// llms.txt: краткая карточка сайта для ИИ-ассистентов (что такое Kirka и её «моменты»).
+const textMomentsText =
+  'ИИ без промптов пишет ' + kindsText(modeOptions.length) + ' текстов: резюме, сопроводительные и деловые письма, претензии, объявления, посты, поздравления, сценарии, пересказы и сочинения.';
+const llms = `# Kirka (Кирка)
+
+> Бесплатный русскоязычный сервис «ИИ без промптов»: выберите вид, нажмите кнопку и получите результат, регистрация не нужна. Сервис состоит из «моментов»: ${MOMENT_NAMES.join(', ')}.
+
+## Моменты
+- [Текст-моменты](${SITE}/): ${textMomentsText}
+${Object.entries(toolSeo)
+  .map(([slug, seo]) => `- [${seo.moment}](${SITE}/${slug}/): ${seo.description}`)
+  .join('\n')}
+
+## Текст-моменты: виды текстов
+${textPages
+  .map((page) => `- [${page.mode.label}](${SITE}/${page.slug}/): ${page.description}`)
+  .join('\n')}
+
+## Прочее
+- [Политика конфиденциальности](${SITE}/privacy/)
+`;
+writeFileSync(join(dist, 'llms.txt'), llms);
 
 console.log(`Сгенерировано страниц: ${pages.length}`);

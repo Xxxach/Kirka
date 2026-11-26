@@ -1102,7 +1102,9 @@ html.dark-theme.has-svg-backdrop .tab-capsule {
 .doc-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-left: 20px; list-style: disc; font-size: 14px; line-height: 1.65; color: #475569; }
 .doc-list li::marker { color: #7a2432; }
 .doc-table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid rgba(122, 36, 50, 0.14); background: rgba(255, 255, 255, 0.6); }
-.doc-table-head { background: rgba(122, 36, 50, 0.07); color: #7a2432; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.doc-table-head { background: #7a2432; color: #fff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.doc-table-head th { font-weight: 700; color: #fff; }
 
 /* Рекламная заглушка: бордовая днём, синяя ночью */
 .ad-slot { border: 0; background: linear-gradient(90deg, #7a2432, #8f2d3f 50%, #7a2432); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 6px 16px -8px rgba(122, 36, 50, 0.55); }
@@ -1113,3 +1115,69 @@ html.dark-theme .ad-slot { background: linear-gradient(90deg, #1d4ed8, #2563eb 5
 html.dark-theme .logo-pop { background: rgba(12, 12, 12, 0.62); }
 html.has-svg-backdrop .logo-pop { background: rgba(255, 255, 255, 0.5); -webkit-backdrop-filter: url(#refract); backdrop-filter: url(#refract); }
 html.dark-theme.has-svg-backdrop .logo-pop { background: rgba(12, 12, 12, 0.56); }
+
+/* ===== Справочник калорийности (выпадающий блок) и тёмная тема документов ===== */
+.about-card h2 { margin: 0; font-size: inherit; font-weight: inherit; }
+
+.cal-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+
+.cal-sec { border-radius: 16px; border: 1px solid rgba(122, 36, 50, 0.14); background: rgba(255, 255, 255, 0.55); padding: 0 16px; }
+
+.cal-sum { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; cursor: pointer; list-style: none; font-size: 14px; font-weight: 600; color: #1e293b; }
+
+.cal-sum::-webkit-details-marker { display: none; }
+
+.cal-sum-end { display: flex; flex: none; align-items: center; gap: 10px; }
+
+.cal-sec[open] .about-chev { transform: rotate(180deg); }
+
+.cal-wrap { margin-bottom: 14px; }
+
+.cal-table { width: 100%; min-width: 22rem; border-collapse: collapse; text-align: left; font-size: 14px; }
+
+.cal-table th, .cal-table td { padding: 8px; }
+
+.cal-table th:first-child, .cal-table td:first-child { padding-left: 16px; }
+
+.cal-table th:last-child, .cal-table td:last-child { padding-right: 16px; }
+
+.cal-table th:not(:first-child), .cal-table td:not(:first-child) { text-align: right; }
+
+.cal-table td { color: #475569; }
+
+.cal-table td:nth-child(2) { font-weight: 500; color: #1e293b; }
+
+.cal-table tbody tr + tr td { border-top: 1px solid rgba(122, 36, 50, 0.1); }
+
+html.dark-theme .doc-card { border-color: rgba(150, 150, 150, 0.25); background: linear-gradient(180deg, rgba(20, 20, 20, 0.78), rgba(12, 12, 12, 0.62)); box-shadow: inset 0 1px 0 rgba(150, 150, 150, 0.14), 0 18px 44px -20px rgba(0, 0, 0, 0.6); }
+
+html.dark-theme .doc-kicker, html.dark-theme .doc-summary h2 { color: rgba(96, 165, 250, 0.85); }
+
+html.dark-theme .doc-title, html.dark-theme .doc-h2, html.dark-theme .doc-strong { color: #e5e5e5; }
+
+html.dark-theme .doc-meta { color: #8a8a8a; }
+
+html.dark-theme .doc-text, html.dark-theme .doc-list, html.dark-theme .doc-summary li { color: #cccccc; }
+
+html.dark-theme .doc-link { color: #60a5fa; text-decoration-color: rgba(96, 165, 250, 0.4); }
+
+html.dark-theme .doc-link:hover { text-decoration-color: #60a5fa; }
+
+html.dark-theme .doc-list li::marker { color: #60a5fa; }
+
+html.dark-theme .doc-summary { border-color: rgba(96, 165, 250, 0.22); background: rgba(59, 130, 246, 0.07); }
+
+html.dark-theme .doc-table-wrap { border-color: rgba(150, 150, 150, 0.22); background: rgba(255, 255, 255, 0.03); }
+
+html.dark-theme .doc-table-head { background: #1d4ed8; color: #fff; }
+
+html.dark-theme .doc-table-wrap tbody > tr + tr { border-color: rgba(150, 150, 150, 0.2); }
+
+html.dark-theme .cal-sec { border-color: rgba(150, 150, 150, 0.22); background: rgba(255, 255, 255, 0.04); }
+
+html.dark-theme .cal-sum, html.dark-theme .cal-table td:nth-child(2) { color: #e5e5e5; }
+
+html.dark-theme .cal-table td { color: #cccccc; }
+
+html.dark-theme .cal-table tbody tr + tr td { border-top-color: rgba(150, 150, 150, 0.2); }
+

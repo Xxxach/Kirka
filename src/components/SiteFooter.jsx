@@ -5,10 +5,10 @@ import { Logo, BetkaMetka } from './Logo';
 import { modeGroups, modePath } from '../data/textModes';
 
 const toolLinks = [
-  { to: '/photo-page', label: 'Фото: сжатие и обработка' },
-  { to: '/kod-page', label: 'Перевод кода' },
-  { to: '/file-page', label: 'Конвертация файлов' },
-  { to: '/chisla-page', label: 'Калькулятор калорий' },
+  { to: '/photo-page', label: 'Фото-моменты: сжатие и улучшение' },
+  { to: '/kod-page', label: 'Код-моменты: перевод кода' },
+  { to: '/file-page', label: 'Файл-моменты: конвертер файлов' },
+  { to: '/chisla-page', label: 'Числа-моменты: калькулятор калорий' },
 ];
 
 const toTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -67,7 +67,7 @@ export function SiteFooter() {
             <Logo className="h-8" />
             <BetkaMetka />
           </div>
-          <p>Бесплатный ИИ-сервис: тексты, перевод кода, сжатие фото и конвертация файлов. Без регистрации.</p>
+          <p>Бесплатный ИИ-сервис: Текст-моменты, Код-моменты, Фото-моменты, Файл-моменты и Числа-моменты. Без регистрации.</p>
         </div>
         <nav className="site-footer-grid" aria-label="Все разделы">
           {modeGroups.map((group) => (
@@ -79,7 +79,7 @@ export function SiteFooter() {
               ))}
             </FooterColumn>
           ))}
-          <FooterColumn title="Инструменты" open={open} onToggle={toggle}>
+          <FooterColumn title="Другие моменты" open={open} onToggle={toggle}>
             {toolLinks.map((item) => (
               <FooterLink key={item.to} to={item.to}>
                 {item.label}
