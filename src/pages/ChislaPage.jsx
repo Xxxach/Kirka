@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { categories, foods, foodById, norm, portionNutrition } from '../data/calories';
 import { kcalRange, resolveFood } from '../data/foodHelpers';
 import { FoodIcon } from '../components/FoodIcon';
@@ -8,6 +8,8 @@ import { AboutBlock } from '../components/AboutBlock';
 import { CalorieTable } from '../components/CalorieTable';
 import { chislaAbout } from '../data/textAbout';
 import { trackGoal } from '../analytics';
+
+const TableDialog = lazy(() => import('../components/TableDialog').then((m) => ({ default: m.TableDialog })));
 
 const round = (value) => Math.round(value);
 
@@ -427,6 +429,7 @@ export function ChislaPage() {
   const [openedId, setOpenedId] = useState(null);
   const [plate, setPlate] = useState([]);
   const [notice, setNotice] = useState('');
+  const [tableOpen, setTableOpen] = useState(false);
   const plateRef = useRef(null);
   const isDesktop = useSyncExternalStore(subscribeDesktop, getDesktop, () => false);
 
@@ -737,6 +740,23 @@ export function ChislaPage() {
                   <span className="text-xl font-semibold">ккал</span>
                 </div>
 
+                {rows.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTableOpen(true);
+                      trackGoal('table_opened', { items: rows.length });
+                    }}
+                    className="gel mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#7A2432] px-5 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[#5c1c28]"
+                  >
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <ellipse cx="12" cy="9" rx="8" ry="3.5" />
+                      <path d="M4 9v1.5c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5V9M8 14.5V20M16 14.5V20" />
+                    </svg>
+                    Посмотреть стол
+                  </button>
+                )}
+
                 <div className="mt-4">
                   <div className="flex items-center justify-between gap-2 text-sm">
                     <span className="text-slate-500">Ориентир: {DAILY_REFERENCE} ккал в день</span>
@@ -835,6 +855,12 @@ export function ChislaPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {tableOpen && rows.length > 0 && (
+        <Suspense fallback={null}>
+          <TableDialog open onClose={() => setTableOpen(false)} entries={rows} totals={totals} path="/chisla-page/" />
+        </Suspense>
       )}
 
       {picked && (
