@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TableScene } from './TableScene';
-import { buildTable, sceneGeometry, SCENE_W } from '../data/tableLayout';
+import { composeTable, SCENE_W } from '../data/tableLayout';
 import { trackGoal } from '../analytics';
 
 const BUTTON =
@@ -30,6 +30,7 @@ async function sceneToPng(svg, height) {
 // «Посмотреть стол» и «Поделиться» в одном окне: смотришь картинку и сразу отправляешь её.
 export function TableDialog({ open, onClose, entries, totals, path }) {
   const svgRef = useRef(null);
+  const [dark] = useState(() => document.documentElement.classList.contains('dark-theme'));
   const [png, setPng] = useState(null);
   const [failed, setFailed] = useState(false);
   const [shown, setShown] = useState(false);
@@ -37,7 +38,7 @@ export function TableDialog({ open, onClose, entries, totals, path }) {
   const noteTimer = useRef(0);
   const closeTimer = useRef(0);
 
-  const height = useMemo(() => sceneGeometry(buildTable(entries).vessels.length).height, [entries]);
+  const height = useMemo(() => composeTable(entries).layout.height, [entries]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -185,7 +186,7 @@ export function TableDialog({ open, onClose, entries, totals, path }) {
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
           <div className="mx-auto" style={{ width: `min(100%, calc(56vh * ${SCENE_W / height}))`, aspectRatio: `${SCENE_W} / ${height}` }}>
-            <TableScene entries={entries} totals={totals} innerRef={svgRef} />
+            <TableScene entries={entries} totals={totals} innerRef={svgRef} dark={dark} />
           </div>
         </div>
 
