@@ -13,7 +13,7 @@ const DISH_MAX = 3;
 const VEG_MIN = 3; // меньше трёх овощей кладём на главную тарелку, от трёх нужна миска
 
 // Куда кладём: фастфуд на картонный лоток, фрукты в бежевую миску, много овощей в синюю миску,
-// готовые блюда (супы, паста, пельмени) в свою большую посуду рядом с тарелкой, сыры и колбасы на свою тарелку,
+// супы в свою большую глубокую тарелку за главной, вторые блюда (голубцы, паста, пельмени) на главную тарелку, сыры и колбасы на свою тарелку,
 // хлеб и сладкое на отдельные маленькие тарелки, сахар и джем на маленькое синее блюдце, соусы маленькими бутылками
 // рядом с лотком, напитки просто на стол, остальное на главную тарелку.
 export const vesselKind = (item) => {
@@ -24,7 +24,7 @@ export const vesselKind = (item) => {
   if (cat === 'sweet' && sub === 'sweetener') return 'sugar';
   if (cat === 'fruit') return 'bowl';
   if (cat === 'veg') return 'veg';
-  if (cat === 'dish') return 'dish';
+  if (cat === 'dish' && sub === 'soup') return 'dish';
   if (cat === 'dairy' || (cat === 'meat' && sub === 'sausage')) return 'cheese';
   if (cat === 'bread') return 'bread';
   if (cat === 'sweet' || cat === 'snacks') return 'sweet';
@@ -40,6 +40,12 @@ export const piecesIn = (label) => {
   const match = lower.match(/\((\d+)\s*штук/);
   return match ? Number(match[1]) : 1;
 };
+
+// Иконки, на которых нарисовано сразу несколько штук (наггетсы: два на картинке).
+const SHOWS = { nuggets: 2 };
+const SUGAR_CUBE = 5; // грамм в одном кусочке рафинада
+const SUGAR_PYRAMID_FROM = 4; // от скольких кусочков рисуем пирамидку
+const SUGAR_PYRAMID_MAX = 36; // в пирамидке до 36 кусочков (основание из 8)
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -77,14 +83,21 @@ export function groupsFor({ item, portion, row }, kind) {
       });
     return groups;
   }
-  if (kind === 'dish') {
-    // Готовое блюдо: одна порция это одна большая посуда, размер зависит от порции.
+  if (item.cat === 'dish') {
+    // Готовое блюдо: одна порция это один предмет (суп, пельмени, паста), размер зависит от порции.
     const ratio = portion.grams / median(item.portions.map((entry) => entry.grams));
     return [{ icon: item.emoji, scale: clamp(ratio ** 0.9, 0.75, 1.3), n: row.count }];
   }
   if (kind === 'sauce') return [{ icon: item.emoji, scale: 0.8, n: 1 }]; // соус: одна маленькая бутылка
+  if (item.id === 'sugar') {
+    // Много сахара: пирамидка из кусочков рафинада
+    const cubes = Math.round(total / SUGAR_CUBE);
+    if (cubes >= SUGAR_PYRAMID_FROM) {
+      return [{ icon: item.emoji, scale: 1, n: 1, pyramid: Math.min(SUGAR_PYRAMID_MAX, cubes), reps: Math.ceil(cubes / SUGAR_PYRAMID_MAX) }];
+    }
+  }
   const scale = sizeScale(item, portion) * (kind === 'sugar' ? 0.75 : 1);
-  return [{ icon: item.emoji, scale, n: piecesIn(portion.label) * row.count }];
+  return [{ icon: item.emoji, scale, n: Math.ceil((piecesIn(portion.label) * row.count) / (SHOWS[item.id] ?? 1)) }];
 }
 
 // Раскладываем предметы по посуде. Фрукты и овощи делим на миски поровну, блюда и напитки по одному.
@@ -114,39 +127,62 @@ function pack(units) {
   return vessels;
 }
 
-const fits = (units) => {
-  const count = (kind) => units.filter((unit) => unit.kind === kind).length;
-  const plan = bowlPlan(units);
-  return (
-    ['main', 'cheese', 'bread', 'sweet', 'sugar', 'tray', 'sauce'].every((kind) => count(kind) <= CAP[kind]) &&
-    count('bowl') <= CAP.bowl * plan.fruit &&
-    count('veg') <= CAP.veg * plan.veg &&
-    count('dish') <= DISH_MAX &&
-    count('drink') <= DRINK_MAX
-  );
-};
+// Иконка значит несколько штук: делим поровну, чтобы сумма на значках сходилась (9 штук в 3 иконки = ×3 ×3 ×3).
+function expand(group, factor) {
+  const base = { icon: group.icon, scale: group.scale, kind: group.kind };
+  if (group.pyramid) return [{ ...base, pyramid: group.pyramid, badge: group.reps > 1 ? group.reps : 0 }];
+  const count = Math.max(1, Math.ceil(group.n / factor));
+  const each = Math.floor(group.n / count);
+  const extra = group.n % count;
+  return Array.from({ length: count }, (_, i) => {
+    const part = each + (i < extra ? 1 : 0);
+    return { ...base, badge: part > 1 ? part : 0 };
+  });
+}
 
 export function buildTable(entries) {
   const groups = entries.flatMap((entry) => {
     const kind = vesselKind(entry.item);
     return groupsFor(entry, kind).map((group) => ({ ...group, kind }));
   });
-  let units = [];
+  // Меньше трёх овощей миска не нужна: они лежат на главной тарелке
+  const vegPieces = groups.filter((group) => group.kind === 'veg').reduce((sum, group) => sum + group.n, 0);
+  if (vegPieces < VEG_MIN) groups.forEach((group) => { if (group.kind === 'veg') group.kind = 'main'; });
+
+  const kinds = new Set(groups.map((group) => group.kind));
+  const capacity = (kind) => {
+    if (kind === 'bowl') return CAP.bowl * (kinds.has('veg') ? 1 : 2);
+    if (kind === 'veg') return CAP.veg * (kinds.has('bowl') ? 1 : 2);
+    if (kind === 'dish') return DISH_MAX;
+    if (kind === 'drink') return DRINK_MAX;
+    return CAP[kind];
+  };
+
+  // Сжимаем каждую посуду отдельно и только настолько, чтобы всё поместилось
+  const units = [];
   let compress = 1;
-  for (let factor = 1; factor <= 24; factor += 1) {
-    units = groups.flatMap((group) => {
-      const n = Math.max(1, Math.ceil(group.n / factor));
-      const badge = factor > 1 && group.n > 1 ? (n === 1 ? group.n : factor) : 0;
-      return Array.from({ length: n }, () => ({ icon: group.icon, scale: group.scale, kind: group.kind, badge }));
-    });
-    // Меньше трёх овощей миска не нужна: они лежат на главной тарелке
-    if (units.filter((unit) => unit.kind === 'veg').length < VEG_MIN) {
+  kinds.forEach((kind) => {
+    const own = groups.filter((group) => group.kind === kind);
+    let list = [];
+    for (let factor = 1; factor <= 24; factor += 1) {
+      list = own.flatMap((group) => expand(group, factor));
+      compress = Math.max(compress, factor);
+      if (list.length <= capacity(kind)) break;
+    }
+    units.push(...list);
+  });
+
+  // Главная тарелка никогда не бывает пустой: ставим на неё суп, а если супа нет, сыр, сладкое или хлеб
+  if (!units.some((unit) => unit.kind === 'main')) {
+    const soup = units.find((unit) => unit.kind === 'dish');
+    if (soup) {
+      soup.kind = 'main';
+    } else {
+      const own = ['cheese', 'sweet', 'bread'].find((kind) => units.some((unit) => unit.kind === kind));
       units.forEach((unit) => {
-        if (unit.kind === 'veg') unit.kind = 'main';
+        if (unit.kind === own) unit.kind = 'main';
       });
     }
-    compress = factor;
-    if (fits(units)) break;
   }
   return { vessels: pack(units), compress };
 }
@@ -298,25 +334,36 @@ export function sceneLayout(vessels) {
     }
   }
 
-  // Нижний ряд: сервировка в центре, напитки по бокам стола (справа и слева по очереди)
-  const H1 = drinks.length >= 5 ? 400 : drinks.length >= 3 ? 350 : 320;
-  const cy1 = HA + H1 - 130;
-  const cx1 = IW / 2;
-  nodes.push({
-    type: 'setting',
-    z: cy1 + 140,
-    cx: cx1,
-    cy: cy1,
-    D: MAIN_D,
-    mat: { x: cx1 - 272, y: cy1 - 125, w: 572, h: 265 },
-    placed: place(main?.units ?? [], cx1, cy1, MAIN_D, { gap: 0.1, base: 0.1 }),
-  });
-  drinks.forEach((unit, i) => {
-    const right = i % 2 === 0;
-    const level = Math.floor(i / 2);
-    const y = cy1 + 75 - level * 85;
-    nodes.push({ type: 'drink', z: y, x: right ? IW - 75 : 75, y, size: DRINK * unit.scale, unit });
-  });
+  // Нижний ряд: сервировка в центре (только если на главной тарелке есть еда), напитки по бокам стола
+  const hasSetting = Boolean(main?.units.length);
+  let H1 = 0;
+  if (hasSetting) {
+    H1 = drinks.length >= 5 ? 400 : drinks.length >= 3 ? 350 : 320;
+    const cy1 = HA + H1 - 130;
+    const cx1 = IW / 2;
+    nodes.push({
+      type: 'setting',
+      z: cy1 + 140,
+      cx: cx1,
+      cy: cy1,
+      D: MAIN_D,
+      mat: { x: cx1 - 272, y: cy1 - 125, w: 572, h: 265 },
+      placed: place(main.units, cx1, cy1, MAIN_D, { gap: 0.1, base: 0.1 }),
+    });
+    drinks.forEach((unit, i) => {
+      const right = i % 2 === 0;
+      const level = Math.floor(i / 2);
+      const y = cy1 + 75 - level * 85;
+      nodes.push({ type: 'drink', z: y, x: right ? IW - 75 : 75, y, size: DRINK * unit.scale, unit });
+    });
+  } else if (drinks.length) {
+    // Без сервировки напитки стоят в ряд
+    H1 = 190;
+    drinks.forEach((unit, i) => {
+      const y = HA + H1 - 24;
+      nodes.push({ type: 'drink', z: y, x: (IW * (i + 1)) / (drinks.length + 1), y, size: DRINK * unit.scale, unit });
+    });
+  }
 
   const panelH = HA + H1 + INNER * 2;
   nodes.sort((a, b) => a.z - b.z);

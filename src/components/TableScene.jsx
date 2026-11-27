@@ -14,6 +14,33 @@ const MACRO = [
   { key: 'c', label: 'Углеводы', color: '#32ADE6' },
 ];
 
+// Пирамидка из кусочков рафинада: ряды по убыванию, каждый кубик с гранями
+function SugarPyramid({ cubes, x, y, size }) {
+  let base = 1;
+  while ((base * (base + 1)) / 2 < cubes) base += 1;
+  const w = Math.min(34, (size * 1.3) / base);
+  const h = w * 0.78;
+  const d = w * 0.3;
+  const parts = [];
+  let left = cubes;
+  for (let row = 0; row < base && left > 0; row += 1) {
+    const inRow = Math.min(base - row, left);
+    left -= inRow;
+    for (let j = 0; j < inRow; j += 1) {
+      const cx = x + (j - (inRow - 1) / 2) * w;
+      const top = y - (row + 1) * h;
+      parts.push(
+        <g key={`${row}-${j}`}>
+          <rect x={cx - w / 2} y={top} width={w} height={h} fill="#fdfdfe" stroke="#cfd6df" strokeWidth="1.2" />
+          <polygon points={`${cx - w / 2},${top} ${cx - w / 2 + d},${top - d} ${cx + w / 2 + d},${top - d} ${cx + w / 2},${top}`} fill="#ffffff" stroke="#cfd6df" strokeWidth="1.2" />
+          <polygon points={`${cx + w / 2},${top} ${cx + w / 2 + d},${top - d} ${cx + w / 2 + d},${top + h - d} ${cx + w / 2},${top + h}`} fill="#e3e8ef" stroke="#cfd6df" strokeWidth="1.2" />
+        </g>,
+      );
+    }
+  }
+  return <g>{parts}</g>;
+}
+
 function Unit({ placed, u, badge }) {
   const { unit, x, y, size } = placed;
   const isSvg = typeof unit.icon === 'string' && unit.icon.startsWith('svg:');
@@ -22,7 +49,9 @@ function Unit({ placed, u, badge }) {
   return (
     <g>
       <ellipse cx={x} cy={y - size * 0.03} rx={size * 0.44} ry={size * 0.1} fill={`url(#${u}sh)`} />
-      {isSvg ? (
+      {unit.pyramid ? (
+        <SugarPyramid cubes={unit.pyramid} x={x} y={y - size * 0.02} size={size} />
+      ) : isSvg ? (
         <g transform={`translate(${x - size / 2} ${y - size * 0.86})`} style={{ fontSize: size / 1.2 }}>
           <FoodIcon icon={unit.icon} />
         </g>
