@@ -4,6 +4,7 @@ import { AdSlot } from './AdSlot';
 import { FeedbackButton } from './FeedbackButton';
 import { DescriptionButton } from './DescriptionButton';
 import { ThemeToggle } from './ThemeToggle';
+import { GlassToggle } from './GlassToggle';
 import { isTextPathname } from '../data/textModes';
 import { SectionsPopover } from './SectionsPopover';
 import { Logo, BetkaMetka, LogoInfo } from './Logo';
@@ -410,12 +411,13 @@ export function Header() {
         </div>
       </div>
 
-      <div className="hidden md:grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div className="hdr-row2 hidden md:grid grid-cols-[1fr_auto_1fr] items-start gap-3">
         <div className="flex justify-start">
           <DescriptionButton />
         </div>
         <TabsCapsule />
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-start justify-end gap-2">
+          <GlassToggle />
           <ThemeToggle />
           <FeedbackButton />
         </div>
@@ -449,6 +451,7 @@ export function Header() {
         <div className="flex flex-col items-end gap-2">
           <SectionsPopover tabs={tabs} className="pointer-events-auto" />
           <ThemeToggle className="pointer-events-auto" />
+          <GlassToggle className="pointer-events-auto" />
         </div>
       </div>
     </div>

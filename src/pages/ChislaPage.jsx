@@ -565,7 +565,7 @@ export function ChislaPage() {
     'flex overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-sm:-mx-4 max-sm:px-4 max-sm:[mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%_-_2.5rem),transparent)] sm:flex-wrap sm:overflow-visible sm:pb-0';
 
   return (
-    <main style={FONT} className={`page-shell flex flex-col gap-5 py-1 ${rows.length > 0 ? 'pb-24 lg:pb-1' : ''}`}>
+    <main style={FONT} className={`page-shell page-rise flex flex-col gap-5 py-1 ${rows.length > 0 ? 'pb-24 lg:pb-1' : ''}`}>
       <div className="flex flex-col gap-3">
         <div className="inline-flex w-fit rounded-full bg-slate-200/50 p-1">
           <button

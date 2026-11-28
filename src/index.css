@@ -1181,3 +1181,59 @@ html.dark-theme .cal-table td { color: #cccccc; }
 
 html.dark-theme .cal-table tbody tr + tr td { border-top-color: rgba(150, 150, 150, 0.2); }
 
+
+/* ===== Появление страницы «Числа»: как на других вкладках (блоки всплывают по очереди) ===== */
+@media (prefers-reduced-motion: no-preference) {
+  .page-rise > :not(.grid):not(.sr-only):not(.fixed),
+  .page-rise > .grid > :not(:has([role='complementary'])) {
+    animation: rise-in 480ms cubic-bezier(0.22, 1.25, 0.36, 1) backwards;
+  }
+  .page-rise > .grid > :first-child { animation-delay: 45ms; }
+  .page-rise > :nth-child(4) { animation-delay: 90ms; }
+  .page-rise > :nth-child(5) { animation-delay: 135ms; }
+}
+
+/* ===== Круглая кнопка «без размытия»: нажата = размытия нет; бордовая, в тёмной теме синяя ===== */
+.glass-btn { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; }
+
+html .hdr-glow.glass-btn[aria-pressed='true'] { background-color: #7a2432 !important; border-color: transparent !important; color: #ffffff !important; }
+
+html.dark-theme .hdr-glow.glass-btn[aria-pressed='true'] { background-color: #2563eb !important; }
+
+/* ===== Режим «без стекла» (html.no-glass): ничего не размывается и не преломляется, панели плоские и сплошные ===== */
+html.no-glass *, html.no-glass *::before, html.no-glass *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+html.no-glass .glass-bar::before, html.no-glass .hdr-glow::before, html.no-glass .tab-capsule::before { display: none; }
+
+html.no-glass .glass-bar, html.no-glass .fb-shell, html.no-glass .logo-pop, html.no-glass .ksel__pop { background: #ffffff !important; border-color: rgba(15, 23, 42, 0.12) !important; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px -12px rgba(15, 23, 42, 0.25) !important; }
+
+html.no-glass .tab-capsule, html.no-glass .hdr-glow { background-color: #e9edf3 !important; border-color: rgba(15, 23, 42, 0.12) !important; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08) !important; }
+
+html.no-glass .tab-liquid.is-lifted, html.no-glass .mode-drop.is-lifted { background: #ffffff; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2); }
+
+html.no-glass .gel, html.no-glass .gel:hover:not(:disabled) { background-image: none; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+
+html.dark-theme.no-glass .glass-bar, html.dark-theme.no-glass .fb-shell, html.dark-theme.no-glass .logo-pop, html.dark-theme.no-glass .ksel__pop { background: #121212 !important; border-color: rgba(255, 255, 255, 0.12) !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px -12px rgba(0, 0, 0, 0.7) !important; }
+
+html.dark-theme.no-glass .tab-capsule, html.dark-theme.no-glass .hdr-glow { background-color: #181818 !important; border-color: rgba(255, 255, 255, 0.14) !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important; }
+
+html.dark-theme.no-glass .tab-liquid.is-lifted, html.dark-theme.no-glass .mode-drop.is-lifted { background: #2a2a2a; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
+
+/* ===== Нижняя шапка на десктопе: «Описание», кнопка без размытия, тема и «Обратная связь» строго одной высоты ===== */
+.hdr-row2 { --pill-h: 30px; }
+
+.hdr-row2 .hdr-glow:not(.glass-btn) { display: inline-flex; align-items: center; height: var(--pill-h); padding-block: 0; }
+
+.hdr-row2 .glass-btn { width: var(--pill-h); height: var(--pill-h); }
+
+.hdr-row2 .toggle-compact { height: var(--pill-h); }
+
+.hdr-row2 .toggle-compact button { height: calc(var(--pill-h) - 6px); width: calc((var(--pill-h) - 6px) * 1.5); }
+
+/* Узкий десктоп (до 1150 px, он же широкий телефон): шапка на 2 кегля мельче, пилюли ниже, «Обратная связь» не переносится */
+@media (min-width: 768px) and (max-width: 1150px) {
+  .hdr-row2 { --pill-h: 26px; }
+  .hdr-row2 .hdr-glow:not(.glass-btn) { font-size: 10px; padding-inline: 0.875rem; white-space: nowrap; }
+  .hdr-row2 .tab-capsule a { font-size: 12px; padding-inline: 0.75rem; }
+  .hdr-row2 .glass-btn svg { width: 15px; height: 15px; }
+}

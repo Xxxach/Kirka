@@ -8,6 +8,9 @@
     <meta name="theme-color" content="#eef1f6" />
     <script>
       try {
+        if (localStorage.getItem('kirka-glass') === 'off') {
+          document.documentElement.classList.add('no-glass');
+        }
         if (localStorage.getItem('kirka-theme') === 'dark') {
           document.documentElement.classList.add('dark-theme');
           document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0a0a0a');
